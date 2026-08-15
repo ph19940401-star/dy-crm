@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DY-CRM系统 · 医疗营销数据驾驶舱</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1d6fe0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DY-CRM">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    --sidebar-bg:#101c2e; --sidebar-active:#1d6fe0; --sidebar-text:#9fb0c7;
+    --bg:#f2f5fa; --card:#ffffff; --line:#e6ebf2;
+    --txt:#1f2d3d; --txt2:#8492a6;
+    --blue:#1d6fe0; --red:#e64545; --green:#18a058; --orange:#e6a23c; --teal:#0e9f9f;
+    --radius:12px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);font-size:14px;}
+  svg{display:block;}
+  .layout{display:flex;min-height:100vh;}
+
+  /* ============ 侧边栏 ============ */
+  .sidebar{width:208px;background:var(--sidebar-bg);color:var(--sidebar-text);flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+  .logo{display:flex;align-items:center;gap:10px;padding:18px 16px;color:#fff;font-size:16px;font-weight:700;letter-spacing:1px;border-bottom:1px solid rgba(255,255,255,.06);}
+  .logo .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#1d6fe0,#0e9f9f);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .nav{flex:1;padding:10px 8px;overflow-y:auto;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:8px;cursor:pointer;margin-bottom:2px;font-size:14px;color:var(--sidebar-text);transition:.15s;user-select:none;}
+  .nav-item:hover{background:rgba(255,255,255,.06);color:#dbe6f5;}
+  .nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600;}
+  .nav-item svg{width:18px;height:18px;flex-shrink:0;}
+  .sidebar-foot{padding:14px 16px;font-size:12px;color:#5b6b82;border-top:1px solid rgba(255,255,255,.06);}
+  .sidebar-foot b{color:#9fb0c7;}
+
+  /* ============ 主区域 ============ */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .topbar{background:var(--card);border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:20;}
+  .topbar .title{font-size:17px;font-weight:700;}
+  .topbar .spacer{flex:1;}
+  .clock{font-size:15px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;background:linear-gradient(135deg,#1d6fe0,#0e9f9f);padding:6px 14px;border-radius:20px;box-shadow:0 2px 8px rgba(29,111,224,.25);}
+  .user-badge{background:#eaf2ff;color:var(--blue);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;color:var(--txt);transition:.15s;min-height:36px;}
+  .btn:hover{border-color:var(--blue);color:var(--blue);}
+  .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;}
+  .btn.primary:hover{background:#1559b8;}
+  .btn.danger{color:var(--red);}
+  .btn.danger:hover{border-color:var(--red);}
+  .content{padding:20px 22px;max-width:1440px;width:100%;margin:0 auto;}
+
+  .sec-title{font-size:14px;font-weight:700;margin:18px 0 10px;display:flex;align-items:center;gap:8px;}
+  .sec-title .dot{width:8px;height:8px;border-radius:2px;background:var(--red);display:inline-block;}
+  .sec-title .dot.blue{background:var(--blue);}
+  .sec-title .meta{font-size:12px;color:var(--txt2);font-weight:400;}
+
+  /* 每日一言横幅 */
+  @keyframes quoteIn{from{opacity:0;transform:translateY(-12px);}to{opacity:1;transform:none;}}
+  @keyframes quoteFlip{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:none;}}
+  .quote-banner{background:linear-gradient(110deg,#1d6fe0,#0e9f9f);border-radius:var(--radius);padding:20px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:8px;box-shadow:0 6px 20px rgba(29,111,224,.20);overflow:hidden;position:relative;animation:quoteIn .7s ease both;}
+  .quote-banner:before{content:"";position:absolute;right:-26px;top:-34px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.10);}
+  .quote-banner:after{content:"";position:absolute;right:48px;bottom:-46px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.07);}
+  .quote-banner .q-text{font-size:20px;font-weight:700;letter-spacing:1px;line-height:1.55;text-shadow:0 1px 3px rgba(0,0,0,.14);position:relative;z-index:1;}
+  .quote-banner .q-text.q-anim{animation:quoteFlip .45s ease both;}
+  .quote-banner .q-text:before{content:"\201C";font-size:30px;opacity:.55;margin-right:2px;vertical-align:-4px;}
+  .quote-banner .q-text:after{content:"\201D";font-size:30px;opacity:.55;margin-left:2px;vertical-align:-9px;}
+  .quote-banner .q-meta{text-align:right;flex-shrink:0;font-size:12px;opacity:.95;line-height:1.7;position:relative;z-index:1;}
+  .quote-banner .q-meta .q-src{font-size:13px;font-weight:600;}
+  .quote-banner .q-meta .q-date{margin-top:3px;}
+  .quote-banner .q-flip{margin-top:9px;display:inline-block;cursor:pointer;font-size:12px;font-weight:600;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:16px;padding:4px 13px;transition:.15s;user-select:none;}
+  .quote-banner .q-flip:hover{background:rgba(255,255,255,.32);transform:translateY(-1px);}
+  @media (max-width:900px){ .quote-banner{flex-direction:column;align-items:flex-start;gap:10px;padding:16px 18px;} .quote-banner .q-meta{text-align:left;} .quote-banner .q-text{font-size:17px;} .quote-banner .q-flip{margin-top:6px;} }
+
+  /* KPI 卡片 */
+  .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:.15s;position:relative;}
+  .kpi:hover{box-shadow:0 4px 14px rgba(29,111,224,.12);transform:translateY(-2px);border-color:#c8dcff;}
+  .kpi .label{font-size:12px;color:var(--txt2);display:flex;justify-content:space-between;align-items:center;}
+  .kpi .label .arrow{width:14px;height:14px;opacity:.4;}
+  .kpi .value{font-size:24px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:.5px;}
+  .kpi .value small{font-size:13px;font-weight:500;color:var(--txt2);margin-left:2px;}
+  .c-blue{color:var(--blue);} .c-red{color:var(--red);} .c-green{color:var(--green);}
+  .c-orange{color:var(--orange);} .c-teal{color:var(--teal);} .c-dark{color:var(--txt);}
+
+  /* 图表区 */
+  .chart-row{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-top:12px;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;}
+  .panel h3{font-size:14px;font-weight:700;margin-bottom:4px;}
+  .panel .legend{display:flex;gap:16px;font-size:12px;color:var(--txt2);margin:4px 0 8px;}
+  .legend .lg{display:flex;align-items:center;gap:5px;}
+  .legend .sw{width:12px;height:12px;border-radius:3px;display:inline-block;}
+
+  /* 弹窗 */
+  .mask{position:fixed;inset:0;background:rgba(15,25,40,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .mask.show{display:flex;}
+  .modal{background:#fff;border-radius:14px;width:860px;max-width:100%;max-height:86vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  .modal-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+  .modal-head b{font-size:15px;}
+  .modal-close{border:none;background:#f2f5fa;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;color:var(--txt2);}
+  .modal-close:hover{background:#e3e9f2;}
+  .modal-body{padding:8px 20px 20px;overflow:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:10px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  th:first-child,td:first-child{text-align:left;}
+  thead th{background:#f7f9fc;color:var(--txt2);font-weight:600;position:sticky;top:0;}
+  tbody tr:hover{background:#f4f8ff;}
+  tfoot td{font-weight:700;background:#f7f9fc;}
+  .hl{color:var(--blue);font-weight:700;}
+
+  /* 数据管理 */
+  .form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end;}
+  .form-grid .field label{display:block;font-size:12px;color:var(--txt2);margin-bottom:4px;}
+  .form-grid input,.form-grid select{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:16px;font-family:inherit;background:#fff;}
+  .form-grid input:focus,.form-grid select:focus{outline:none;border-color:var(--blue);}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;}
+  .table-wrap{overflow-x:auto;}
+  .tip-bar{background:#fff8e6;border:1px solid #ffe1a1;color:#946200;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none;}
+  .tip-bar.show{display:block;}
+
+  /* 龙虎榜 */
+  .rank-list{display:flex;flex-direction:column;gap:10px;}
+  .rank-item{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;cursor:pointer;transition:.15s;}
+  .rank-item:hover{box-shadow:0 4px 14px rgba(29,111,224,.12);transform:translateY(-1px);border-color:#c8dcff;}
+  .rank-no{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;background:#f0f3f8;color:var(--txt2);flex-shrink:0;}
+  .rank-item.r1 .rank-no{background:linear-gradient(135deg,#f7b500,#e64500);color:#fff;}
+  .rank-item.r2 .rank-no{background:linear-gradient(135deg,#9aa7b8,#5b6b82);color:#fff;}
+  .rank-item.r3 .rank-no{background:linear-gradient(135deg,#d08a4e,#8a4b1f);color:#fff;}
+  .rank-name{width:80px;font-weight:700;}
+  .rank-bar{flex:1;height:14px;background:#f0f3f8;border-radius:7px;overflow:hidden;}
+  .rank-bar i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,#1d6fe0,#0e9f9f);}
+  .rank-num{width:110px;text-align:right;font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums;}
+
+  .empty{padding:60px 0;text-align:center;color:var(--txt2);}
+  .placeholder{padding:80px 20px;text-align:center;color:var(--txt2);}
+  .placeholder b{display:block;font-size:16px;color:var(--txt);margin-bottom:8px;}
+
+  /* ============ 移动端 ============ */
+  .mobile-nav{display:none;}
+  @media (max-width:900px){
+    .sidebar{display:none;}
+
+    /* 顶栏：手机上只留标题 + 时钟，收起导出/导入/徽章，避免拥挤 */
+    .topbar{padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));gap:10px;}
+    .topbar .spacer{display:none;}
+    .topbar .btn{display:none;}
+    .topbar .refresh-btn{display:inline-flex !important;align-items:center;gap:4px;}
+    .topbar .user-badge{display:none;}
+    .topbar .title{font-size:16px;}
+
+    /* 底部固定 Tab 栏（App 化） */
+    .mobile-nav{
+      display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;
+      background:var(--sidebar-bg);overflow-x:auto;overflow-y:hidden;
+      padding:7px 6px calc(7px + env(safe-area-inset-bottom));gap:2px;
+      box-shadow:0 -3px 14px rgba(0,0,0,.20);-webkit-overflow-scrolling:touch;
+    }
+    .mobile-nav .nav-item{
+      flex:0 0 auto;flex-direction:column;align-items:center;justify-content:center;
+      gap:3px;padding:6px 11px;margin:0;font-size:11px;line-height:1.1;color:var(--sidebar-text);
+    }
+    .mobile-nav .nav-item svg{width:21px;height:21px;}
+    .mobile-nav .nav-item.active{background:transparent;color:#fff;}
+    .mobile-nav .nav-item.active svg{color:var(--blue);}
+    .mobile-nav .nav-item.active{position:relative;}
+    .mobile-nav .nav-item.active::after{content:"";position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background:var(--blue);}
+    .mobile-nav .nav-logout{display:none;}
+
+    /* 内容让出底部 Tab 高度 */
+    .content{padding:14px 14px 86px;}
+
+    /* 栅格与组件适配 */
+    .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .chart-row{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:repeat(2,1fr);gap:9px;}
+    .kpi .value{font-size:21px;}
+    .kpi .label{font-size:11px;}
+    .sec-title{margin:16px 0 8px;font-size:13px;}
+
+    /* 弹窗全屏化 */
+    .mask{padding:0;}
+    .modal{width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;}
+    .modal-head{padding:16px 16px calc(16px + env(safe-area-inset-top));}
+    .modal-body{padding:6px 14px 24px;}
+    table{font-size:12px;}
+    th,td{padding:9px 8px;}
+  }
+  @media (min-width:901px) and (max-width:1200px){
+    .kpi-grid{grid-template-columns:repeat(3,1fr);}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- 侧边栏 -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v6c0 5 4 8.4 9 9 5-.6 9-4 9-9V7l-9-5Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M12 8v6M9 11h6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+      </span>
+      DY-CRM系统
+    </div>
+    <nav class="nav" id="sideNav"></nav>
+    <div class="sidebar-foot">演示用户 · <b>管理员</b></div>
+  </aside>
+
+  <!-- 移动端导航 -->
+  <div class="mobile-nav" id="mobileNav"></div>
+
+  <!-- 主区域 -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="title" id="pageTitle">仪表盘</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn refresh-btn" onclick="pullCloud()">↻ 刷新</button>
+      <button class="btn" onclick="exportJSON()">导出 JSON</button>
+      <button class="btn" onclick="document.getElementById('importFile').click()">导入恢复</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+      <span class="clock" id="clock"></span>
+      <span class="user-badge">演示用户 · 管理员</span>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- 明细弹窗 -->
+<div class="mask" id="mask" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head"><b id="modalTitle">明细</b><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ==================== 数据层 ==================== */
+var LS_KEY = 'wb_medicrm_records_v5';
+/* 云端数据源：GitHub 私密 Gist 的 raw 读取地址（公开可读、无需密钥）。占位，部署前替换为真实 URL */
+var DATA_URL = 'https://gist.githubusercontent.com/ph19940401-star/1c72c901fdfae3c9bfcd1c10d54f9de4/raw/data.json';
+var LS_OLD4 = 'wb_medicrm_records_v4';
+var LS_OLD3 = 'wb_medicrm_records_v3';
+var LS_OLD2 = 'wb_medicrm_records_v2';
+var LS_OLD1 = 'wb_medicrm_records_v1';
+var ORGS = ['天雄星','天立星','福州博润','天机星','金牛-黄V团队','天损星'];
+var STAFF = ['陈敏','张语欣','齐雪莹','李林'];
+var STAFF_W = {'陈敏':.30,'张语欣':.27,'齐雪莹':.23,'李林':.20};
+/* 旧数据城市名 → 新渠道名 映射 */
+var RENAME = {'哈尔滨':'天雄星','南京':'天立星','郑州':'福州博润','贵阳':'天机星','昆明':'金牛-黄V团队','成都':'天损星'};
+var records = [];
+
+/* 把一条渠道日汇总按客服权重拆成多条客服记录 */
+function splitByStaff(row, rnd){
+  var rows=[], acc={tot:0,val:0,push:0,book:0,arr:0};
+  STAFF.forEach(function(st,si){
+    var last = si===STAFF.length-1;
+    var f = STAFF_W[st]*(0.85+0.3*rnd());
+    var r2 = {date:row.date, org:row.org, staff:st};
+    ['tot','val','push','book','arr'].forEach(function(k){
+      r2[k] = last ? Math.max(0,(+row[k]||0)-acc[k]) : Math.round((+row[k]||0)*f);
+      acc[k]+=r2[k];
+    });
+    rows.push(r2);
+  });
+  return rows;
+}
+
+function loadData(){
+  try{ records = JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch(e){ records = []; }
+  if(!records.length){
+    try{
+      /* 从 v4 直接迁移（已含客服维度） */
+      var v4 = JSON.parse(localStorage.getItem(LS_OLD4)) || [];
+      if(v4.length){
+        records = v4.map(function(r,i){
+          return {id:i+1,date:r.date,org:r.org,staff:r.staff||'',tot:+r.tot||0,val:+r.val||0,push:+r.push||0,book:+r.book||0,arr:+r.arr||0};
+        });
+      }else{
+        /* 从 v3（渠道口径，无客服）迁移：按客服权重拆分 */
+        var v3 = JSON.parse(localStorage.getItem(LS_OLD3)) || [];
+        var v2 = [], v1 = [];
+        if(!v3.length){
+          v2 = JSON.parse(localStorage.getItem(LS_OLD2)) || [];
+          if(v2.length){
+            v3 = v2.map(function(r){ return {date:r.date,org:RENAME[r.org]||r.org,tot:+r.tot||0,val:+r.val||0,push:+r.push||0,book:+r.book||0,arr:+r.arr||0}; });
+          }else{
+            /* 从 v1（消费/核销口径）迁移 */
+            v1 = JSON.parse(localStorage.getItem(LS_OLD1)) || [];
+            if(v1.length){
+              v3 = v1.map(function(r){
+                var tot=+r.conv||0, val=Math.round(tot*0.8), push=Math.round(val*0.65);
+                return {date:r.date,org:RENAME[r.org]||r.org,tot:tot,val:val,push:push,book:+r.hx||0,arr:+r.ry||0};
+              });
+            }
+          }
+        }
+        if(v3.length){
+          var rnd = seeded(42);
+          records = [];
+          v3.forEach(function(r){
+            splitByStaff(r, rnd).forEach(function(row){ records.push(row); });
+          });
+          records.forEach(function(r,i){ r.id=i+1; });
+        }
+      }
+    }catch(e){}
+  }
+  if(!records.length){ records = (typeof SEED_RECORDS!=='undefined' && SEED_RECORDS.length) ? SEED_RECORDS.map(function(r,i){ r.id=i+1; return r; }) : makeSample(); }
+  saveData();
+}
+
+/* 从云端数据源拉取最新数据（公开读取地址，无需密钥）；失败则保留本地缓存/示例 */
+async function pullCloud(){
+  if(!DATA_URL || DATA_URL.indexOf('__GIST__')===0) return;
+  try{
+    var url = DATA_URL + (DATA_URL.indexOf('?')>=0 ? '&' : '?') + 't=' + Date.now();
+    var res = await fetch(url, {cache:'no-store'});
+    if(!res.ok) return;
+    var d = await res.json();
+    var changed = false;
+    if(d.records && d.records.length){
+      records = d.records.map(function(r,i){ r.id=i+1; return r; });
+      saveData(); changed = true;
+    }
+    if(d.cs && d.cs.length){
+      csRecords = d.cs.map(function(r,i){ r.id=i+1; return r; });
+      saveCs(); changed = true;
+    }
+    if(changed){ route(); }
+  }catch(e){ /* 离线或网络异常，保留本地缓存 */ }
+}
+function saveData(){ localStorage.setItem(LS_KEY, JSON.stringify(records)); }
+
+/* 伪随机（稳定可复现） */
+function seeded(s){ return function(){ s=(s*9301+49297)%233280; return s/233280; }; }
+
+/* 示例数据：6 个渠道 × 2026年1-8月，漏斗：总数据→有效→推进→预约→到诊 */
+
+
+
+/* 真实种子数据（来源：线索清单858193555611451333.xlsx，2026-08-15 烧录｜口径：客服=先聊客服列 / 渠道=运营公司列） */
+var SEED_RECORDS = [{"date": "2026-08-14", "org": "天雄星", "staff": "未知", "tot": 5, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天损星", "staff": "未知", "tot": 12, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天损星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天立星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天机星", "staff": "李林", "tot": 11, "val": 5, "push": 5, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天雄星", "staff": "李林", "tot": 3, "val": 3, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天机星", "staff": "未知", "tot": 6, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-13", "org": "天雄星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-13", "org": "天损星", "staff": "未知", "tot": 19, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-13", "org": "天机星", "staff": "未知", "tot": 8, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-13", "org": "天机星", "staff": "李林", "tot": 6, "val": 4, "push": 3, "book": 1, "arr": 0}, {"date": "2026-08-13", "org": "天雄星", "staff": "李林", "tot": 6, "val": 3, "push": 3, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天机星", "staff": "未知", "tot": 10, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天雄星", "staff": "未知", "tot": 4, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天机星", "staff": "李林", "tot": 7, "val": 3, "push": 2, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天损星", "staff": "未知", "tot": 16, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天损星", "staff": "李林", "tot": 2, "val": 2, "push": 2, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天雄星", "staff": "李林", "tot": 2, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天损星", "staff": "未知", "tot": 8, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天损星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天雄星", "staff": "李林", "tot": 6, "val": 4, "push": 4, "book": 1, "arr": 1}, {"date": "2026-08-11", "org": "天机星", "staff": "李林", "tot": 6, "val": 5, "push": 4, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天机星", "staff": "未知", "tot": 11, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天雄星", "staff": "未知", "tot": 9, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天机星", "staff": "未知", "tot": 12, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天雄星", "staff": "未知", "tot": 3, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天雄星", "staff": "李林", "tot": 4, "val": 3, "push": 3, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天损星", "staff": "李林", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天损星", "staff": "未知", "tot": 13, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天立星", "staff": "李林", "tot": 1, "val": 0, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天机星", "staff": "李林", "tot": 7, "val": 2, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天立星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天雄星", "staff": "未知", "tot": 4, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天雄星", "staff": "李林", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天机星", "staff": "李林", "tot": 7, "val": 2, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天机星", "staff": "未知", "tot": 6, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天立星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天机星", "staff": "李林", "tot": 14, "val": 8, "push": 7, "book": 1, "arr": 1}, {"date": "2026-08-07", "org": "天损星", "staff": "未知", "tot": 12, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天雄星", "staff": "李林", "tot": 1, "val": 1, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天雄星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天机星", "staff": "未知", "tot": 10, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天立星", "staff": "李林", "tot": 3, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天雄星", "staff": "未知", "tot": 2, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天损星", "staff": "未知", "tot": 19, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天机星", "staff": "未知", "tot": 5, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天机星", "staff": "李林", "tot": 2, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天雄星", "staff": "李林", "tot": 4, "val": 4, "push": 3, "book": 1, "arr": 0}, {"date": "2026-08-05", "org": "天损星", "staff": "未知", "tot": 18, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-05", "org": "电击流量号公司", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-05", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-05", "org": "天雄星", "staff": "未知", "tot": 5, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-05", "org": "天雄星", "staff": "李林", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天机星", "staff": "未知", "tot": 11, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天机星", "staff": "李林", "tot": 16, "val": 11, "push": 10, "book": 1, "arr": 1}, {"date": "2026-08-04", "org": "天雄星", "staff": "未知", "tot": 5, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天损星", "staff": "未知", "tot": 18, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天损星", "staff": "李林", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天雄星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天立星", "staff": "李林", "tot": 2, "val": 2, "push": 2, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天机星", "staff": "孙洋", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天机星", "staff": "未知", "tot": 9, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天雄星", "staff": "未知", "tot": 2, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天机星", "staff": "李林", "tot": 11, "val": 4, "push": 3, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天雄星", "staff": "李林", "tot": 3, "val": 2, "push": 2, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天损星", "staff": "未知", "tot": 20, "val": 0, "push": 0, "book": 0, "arr": 0}];
+var SEED_CS = [{"date": "2026-08-14", "staff": "未知", "org": "天雄星", "tot": 5, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-14", "staff": "未知", "org": "天损星", "tot": 12, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-14", "staff": "李林", "org": "天损星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-14", "staff": "未知", "org": "天立星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-14", "staff": "李林", "org": "天机星", "tot": 11, "jt": 0, "jw": 11, "val": 5}, {"date": "2026-08-14", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-14", "staff": "李林", "org": "天雄星", "tot": 3, "jt": 0, "jw": 3, "val": 3}, {"date": "2026-08-14", "staff": "未知", "org": "天机星", "tot": 6, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-13", "staff": "未知", "org": "天雄星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-13", "staff": "未知", "org": "天损星", "tot": 19, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-13", "staff": "未知", "org": "天机星", "tot": 8, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-13", "staff": "李林", "org": "天机星", "tot": 6, "jt": 0, "jw": 6, "val": 4}, {"date": "2026-08-13", "staff": "李林", "org": "天雄星", "tot": 6, "jt": 0, "jw": 6, "val": 3}, {"date": "2026-08-12", "staff": "未知", "org": "天机星", "tot": 10, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-12", "staff": "未知", "org": "天雄星", "tot": 4, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-12", "staff": "李林", "org": "天机星", "tot": 7, "jt": 0, "jw": 7, "val": 3}, {"date": "2026-08-12", "staff": "未知", "org": "天损星", "tot": 16, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-12", "staff": "李林", "org": "天损星", "tot": 2, "jt": 0, "jw": 2, "val": 2}, {"date": "2026-08-12", "staff": "李林", "org": "天雄星", "tot": 2, "jt": 0, "jw": 2, "val": 0}, {"date": "2026-08-11", "staff": "未知", "org": "天损星", "tot": 8, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-11", "staff": "李林", "org": "天损星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-11", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-11", "staff": "李林", "org": "天雄星", "tot": 6, "jt": 0, "jw": 6, "val": 4}, {"date": "2026-08-11", "staff": "李林", "org": "天机星", "tot": 6, "jt": 0, "jw": 6, "val": 5}, {"date": "2026-08-11", "staff": "未知", "org": "天机星", "tot": 11, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-11", "staff": "未知", "org": "天雄星", "tot": 9, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-10", "staff": "未知", "org": "天机星", "tot": 12, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-10", "staff": "未知", "org": "天雄星", "tot": 3, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-10", "staff": "李林", "org": "天雄星", "tot": 4, "jt": 0, "jw": 4, "val": 3}, {"date": "2026-08-10", "staff": "李林", "org": "天损星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-10", "staff": "未知", "org": "天损星", "tot": 13, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-10", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-10", "staff": "李林", "org": "天机星", "tot": 7, "jt": 0, "jw": 7, "val": 2}, {"date": "2026-08-10", "staff": "未知", "org": "天立星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-08", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-08", "staff": "未知", "org": "天雄星", "tot": 4, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-08", "staff": "李林", "org": "天雄星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-08", "staff": "李林", "org": "天机星", "tot": 7, "jt": 0, "jw": 7, "val": 2}, {"date": "2026-08-08", "staff": "未知", "org": "天机星", "tot": 6, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-08", "staff": "未知", "org": "天立星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-07", "staff": "李林", "org": "天机星", "tot": 14, "jt": 0, "jw": 14, "val": 8}, {"date": "2026-08-07", "staff": "未知", "org": "天损星", "tot": 12, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-07", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-07", "staff": "李林", "org": "天雄星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-07", "staff": "未知", "org": "天雄星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-07", "staff": "未知", "org": "天机星", "tot": 10, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-06", "staff": "李林", "org": "天立星", "tot": 3, "jt": 0, "jw": 3, "val": 1}, {"date": "2026-08-06", "staff": "未知", "org": "天雄星", "tot": 2, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-06", "staff": "未知", "org": "天损星", "tot": 19, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-06", "staff": "未知", "org": "天机星", "tot": 5, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-06", "staff": "李林", "org": "天机星", "tot": 2, "jt": 0, "jw": 2, "val": 1}, {"date": "2026-08-06", "staff": "李林", "org": "天雄星", "tot": 4, "jt": 0, "jw": 4, "val": 4}, {"date": "2026-08-05", "staff": "未知", "org": "天损星", "tot": 18, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-05", "staff": "未知", "org": "电击流量号公司", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-05", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-05", "staff": "未知", "org": "天雄星", "tot": 5, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-05", "staff": "李林", "org": "天雄星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-04", "staff": "未知", "org": "天机星", "tot": 11, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-04", "staff": "李林", "org": "天机星", "tot": 16, "jt": 0, "jw": 16, "val": 11}, {"date": "2026-08-04", "staff": "未知", "org": "天雄星", "tot": 5, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-04", "staff": "未知", "org": "天损星", "tot": 18, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-04", "staff": "李林", "org": "天损星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-04", "staff": "李林", "org": "天雄星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-04", "staff": "李林", "org": "天立星", "tot": 2, "jt": 0, "jw": 2, "val": 2}, {"date": "2026-08-04", "staff": "孙洋", "org": "天机星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-03", "staff": "未知", "org": "天机星", "tot": 9, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-03", "staff": "未知", "org": "天雄星", "tot": 2, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-03", "staff": "李林", "org": "天机星", "tot": 11, "jt": 0, "jw": 11, "val": 4}, {"date": "2026-08-03", "staff": "李林", "org": "天雄星", "tot": 3, "jt": 0, "jw": 3, "val": 2}, {"date": "2026-08-03", "staff": "未知", "org": "天损星", "tot": 20, "jt": 0, "jw": 0, "val": 0}];
+
+function makeSample(){
+  var base = { /* 月总数据量, 有效率, 推进率(占有效), 预约率(占推进), 到诊率(占预约) */
+    '天雄星':{m:1650, vr:.80, pr:.66, br:.56, ar:.72},
+    '天立星':{m:1480, vr:.78, pr:.63, br:.53, ar:.70},
+    '福州博润':{m:1720, vr:.81, pr:.67, br:.57, ar:.73},
+    '天机星':{m:1690, vr:.77, pr:.62, br:.52, ar:.69},
+    '金牛-黄V团队':{m:1610, vr:.80, pr:.65, br:.55, ar:.71},
+    '天损星':{m:1580, vr:.79, pr:.64, br:.54, ar:.70}
+  };
+  /* 1-8 月季节系数：2 月春节低谷，3-5 月旺季，暑期回升 */
+  var season = [.92,.72,1.08,1.05,1.10,.98,1.02,1.06];
+  var out=[], id=1;
+  ORGS.forEach(function(org,oi){
+    var b=base[org], rnd=seeded(oi*777+13);
+    for(var mo=1; mo<=8; mo++){
+      var days = new Date(2026, mo, 0).getDate();
+      var mScale = b.m * season[mo-1] * (0.95+0.1*rnd());
+      for(var d=1; d<=days; d++){
+        var wave = 0.72 + 0.56*rnd() + (d>=25?0.12:0);       // 月末略高
+        var tot  = Math.max(5, Math.round(mScale/days*wave));
+        var val  = Math.round(tot  * b.vr * (0.95+0.1*rnd()));
+        var push = Math.round(val  * b.pr * (0.95+0.1*rnd()));
+        var book = Math.round(push * b.br * (0.95+0.1*rnd()));
+        var arr  = Math.round(book * b.ar * (0.95+0.1*rnd()));
+        var day = {date:'2026-'+('0'+mo).slice(-2)+'-'+(d<10?'0'+d:d), org:org, tot:tot, val:val, push:push, book:book, arr:arr};
+        splitByStaff(day, rnd).forEach(function(row){ row.id=id++; out.push(row); });
+      }
+    }
+  });
+  return out;
+}
+
+/* ==================== 客服外呼数据（独立口径） ==================== */
+var CS_LS = 'wb_medicrm_cs_v3';
+var CS_OLD2 = 'wb_medicrm_cs_v2';
+var CS_OLD = 'wb_medicrm_cs_v1';
+var csRecords = [];
+var csPeriod = 'day';   // day | mon | year
+var csChannel = '天雄星';   // 分渠道查看的当前渠道
+var CH_W = {'天雄星':.19,'天立星':.16,'福州博润':.20,'天机星':.18,'金牛-黄V团队':.14,'天损星':.13};
+
+/* 把一条客服日汇总按渠道权重拆分 */
+function splitCsByChannel(day, rnd){
+  var rows=[], acc={tot:0,jt:0,jw:0,val:0};
+  ORGS.forEach(function(org,oi){
+    var last = oi===ORGS.length-1;
+    var f = CH_W[org]*(0.8+0.4*rnd());
+    var r2={date:day.date, staff:day.staff, org:org};
+    ['tot','jt','jw','val'].forEach(function(k){
+      r2[k] = last ? Math.max(0,(+day[k]||0)-acc[k]) : Math.round((+day[k]||0)*f);
+      acc[k]+=r2[k];
+    });
+    if(r2.tot>0 || r2.val>0) rows.push(r2);
+  });
+  return rows;
+}
+
+function loadCs(){
+  try{ csRecords = JSON.parse(localStorage.getItem(CS_LS)) || []; }catch(e){ csRecords = []; }
+  if(!csRecords.length){
+    try{
+      /* 从 v2（已含渠道）直接迁移 */
+      var v2 = JSON.parse(localStorage.getItem(CS_OLD2)) || [];
+      if(v2.length){
+        csRecords = v2.map(function(r,i){
+          return {id:i+1,date:r.date,staff:r.staff,org:r.org||'',tot:+r.tot||0,jt:+r.jt||0,jw:+r.jw||0,val:+r.val||0};
+        });
+      }else{
+        /* 从 v1（无渠道）迁移：按渠道权重拆分 */
+        var old = JSON.parse(localStorage.getItem(CS_OLD)) || [];
+        if(old.length){
+          var rnd = seeded(99);
+          csRecords = [];
+          old.forEach(function(r){
+            splitCsByChannel(r, rnd).forEach(function(row){ csRecords.push(row); });
+          });
+          csRecords.forEach(function(r,i){ r.id=i+1; });
+        }
+      }
+    }catch(e){}
+  }
+  if(!csRecords.length){ csRecords = (typeof SEED_CS!=='undefined' && SEED_CS.length) ? SEED_CS.map(function(r,i){ r.id=i+1; return r; }) : makeCsSample(); }
+  saveCs();
+}
+function saveCs(){ localStorage.setItem(CS_LS, JSON.stringify(csRecords)); }
+
+/* 客服外呼示例数据：4 客服 × 2026年1-8月 × 渠道拆分，口径：总数据→接通→加微→有效 */
+function makeCsSample(){
+  var season = [.92,.72,1.08,1.05,1.10,.98,1.02,1.06];
+  var out=[], id=1;
+  STAFF.forEach(function(st,si){
+    var rnd=seeded(si*331+7);
+    for(var mo=1; mo<=8; mo++){
+      var days = new Date(2026, mo, 0).getDate();
+      for(var d=1; d<=days; d++){
+        var wave = (0.75 + 0.5*rnd() + (d>=25?0.1:0)) * season[mo-1];
+        var tot = Math.max(10, Math.round((52+si*3)*wave));
+        var jt  = Math.round(tot * (0.60+0.10*rnd()));   // 接通
+        var jw  = Math.round(jt  * (0.50+0.12*rnd()));   // 加微
+        var val = Math.round(jw  * (0.68+0.10*rnd()));   // 有效
+        var day = {date:'2026-'+('0'+mo).slice(-2)+'-'+(d<10?'0'+d:d), staff:st, tot:tot, jt:jt, jw:jw, val:val};
+        splitCsByChannel(day, rnd).forEach(function(row){ row.id=id++; out.push(row); });
+      }
+    }
+  });
+  return out;
+}
+function csSum(list){
+  var s={tot:0,jt:0,jw:0,val:0};
+  list.forEach(function(r){ s.tot+=r.tot; s.jt+=r.jt; s.jw+=r.jw; s.val+=r.val; });
+  s.jtr = s.tot? s.jt/s.tot*100 : 0;   // 接通率 = 接通 ÷ 总数据
+  s.jwr = s.jt?  s.jw/s.jt*100  : 0;   // 加微率 = 加微 ÷ 接通
+  s.vr  = s.jw?  s.val/s.jw*100 : 0;   // 有效率 = 有效 ÷ 加微
+  return s;
+}
+
+/* ==================== 计算层 ==================== */
+function latestDate(){
+  var max=''; records.forEach(function(r){ if(r.date>max) max=r.date; });
+  return max || todayStr();
+}
+function todayStr(){
+  var d=new Date();
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+function sum(list){
+  var s={tot:0,val:0,push:0,book:0,arr:0};
+  list.forEach(function(r){ s.tot+=r.tot; s.val+=r.val; s.push+=r.push; s.book+=r.book; s.arr+=r.arr; });
+  s.cvrt = s.tot? s.arr/s.tot*100 : 0;    // 总转化 = 到诊 ÷ 总数据
+  return s;
+}
+function fmtPct(n){ return n.toFixed(2)+'%'; }
+
+/* ==================== 视图：仪表盘 ==================== */
+/* ==================== 每日一言 ==================== */
+var DAILY_QUOTES = [{"t":"志不强者智不达，言不信者行不果","s":"墨子《修身》"},{"t":"三军可夺帅也，匹夫不可夺志也","s":"《论语·子罕》"},{"t":"岁寒，然后知松柏之后凋也","s":"《论语·子罕》"},{"t":"学而不思则罔，思而不学则殆","s":"《论语·为政》"},{"t":"知者不惑，仁者不忧，勇者不惧","s":"《论语·子罕》"},{"t":"其身正，不令而行；其身不正，虽令不从","s":"《论语·子路》"},{"t":"工欲善其事，必先利其器","s":"《论语·卫灵公》"},{"t":"吾日三省吾身","s":"《论语·学而》"},{"t":"见贤思齐焉，见不贤而内自省也","s":"《论语·里仁》"},{"t":"君子务本，本立而道生","s":"《论语·学而》"},{"t":"知之者不如好之者，好之者不如乐之者","s":"《论语·雍也》"},{"t":"君子和而不同，小人同而不和","s":"《论语·子路》"},{"t":"逝者如斯夫，不舍昼夜","s":"《论语·子罕》"},{"t":"仰之弥高，钻之弥坚","s":"《论语·子罕》"},{"t":"祸兮福之所倚，福兮祸之所伏","s":"《老子·五十八章》"},{"t":"千里之行，始于足下","s":"《老子·六十四章》"},{"t":"知人者智，自知者明","s":"《老子·三十三章》"},{"t":"上善若水，水善利万物而不争","s":"《老子·八章》"},{"t":"合抱之木，生于毫末；九层之台，起于累土","s":"《老子·六十四章》"},{"t":"大器晚成，大音希声","s":"《老子·四十一章》"},{"t":"天下之难事必作于易，天下大事必作于细","s":"《老子·六十三章》"},{"t":"锲而不舍，金石可镂","s":"《荀子·劝学》"},{"t":"不积跬步，无以至千里；不积小流，无以成江海","s":"《荀子·劝学》"},{"t":"学不可以已","s":"《荀子·劝学》"},{"t":"青取之于蓝而青于蓝","s":"《荀子·劝学》"},{"t":"道虽迩，不行不至；事虽小，不为不成","s":"《荀子·修身》"},{"t":"君子博学而日参省乎己","s":"《荀子·劝学》"},{"t":"玉在山而草木润，渊生珠而崖不枯","s":"《荀子·劝学》"},{"t":"穷则独善其身，达则兼济天下","s":"《孟子·尽心》"},{"t":"富贵不能淫，贫贱不能移，威武不能屈","s":"《孟子·滕文公》"},{"t":"天将降大任于是人也，必先苦其心志","s":"《孟子·告子》"},{"t":"生于忧患，死于安乐","s":"《孟子·告子》"},{"t":"得道者多助，失道者寡助","s":"《孟子·公孙丑》"},{"t":"不以规矩，不能成方圆","s":"《孟子·离娄》"},{"t":"爱人者人恒爱之，敬人者人恒敬之","s":"《孟子·离娄》"},{"t":"老吾老以及人之老，幼吾幼以及人之幼","s":"《孟子·梁惠王》"},{"t":"路漫漫其修远兮，吾将上下而求索","s":"屈原《离骚》"},{"t":"亦余心之所善兮，虽九死其犹未悔","s":"屈原《离骚》"},{"t":"长太息以掩涕兮，哀民生之多艰","s":"屈原《离骚》"},{"t":"尺有所短，寸有所长","s":"《楚辞·卜居》"},{"t":"黄钟毁弃，瓦釜雷鸣","s":"《楚辞·卜居》"},{"t":"精诚所至，金石为开","s":"《后汉书·广陵思王荆传》"},{"t":"临渊羡鱼，不如退而结网","s":"《汉书·董仲舒传》"},{"t":"少壮不努力，老大徒伤悲","s":"《长歌行》"},{"t":"百川东到海，何时复西归","s":"《长歌行》"},{"t":"疾风知劲草，板荡识诚臣","s":"李世民《赐萧瑀》"},{"t":"以铜为镜可以正衣冠，以史为镜可以知兴替","s":"《旧唐书·魏徵传》"},{"t":"海纳百川，有容乃大","s":"林则徐"},{"t":"苟利国家生死以，岂因祸福避趋之","s":"林则徐"},{"t":"千磨万击还坚劲，任尔东西南北风","s":"郑燮《竹石》"},{"t":"咬定青山不放松，立根原在破岩中","s":"郑燮《竹石》"},{"t":"落红不是无情物，化作春泥更护花","s":"龚自珍《己亥杂诗》"},{"t":"我劝天公重抖擞，不拘一格降人才","s":"龚自珍《己亥杂诗》"},{"t":"江山代有才人出，各领风骚数百年","s":"赵翼《论诗》"},{"t":"莫等闲，白了少年头，空悲切","s":"岳飞《满江红》"},{"t":"三十功名尘与土，八千里路云和月","s":"岳飞《满江红》"},{"t":"壮志饥餐胡虏肉，笑谈渴饮匈奴血","s":"岳飞《满江红》"},{"t":"人生自古谁无死，留取丹心照汗青","s":"文天祥《过零丁洋》"},{"t":"臣心一片磁针石，不指南方不肯休","s":"文天祥《扬子江》"},{"t":"粉骨碎身浑不怕，要留清白在人间","s":"于谦《石灰吟》"},{"t":"不要人夸好颜色，只留清气满乾坤","s":"王冕《墨梅》"},{"t":"但愿苍生俱饱暖，不辞辛苦出山林","s":"于谦《咏煤炭》"},{"t":"僵卧孤村不自哀，尚思为国戍轮台","s":"陆游《十一月四日风雨大作》"},{"t":"王师北定中原日，家祭无忘告乃翁","s":"陆游《示儿》"},{"t":"位卑未敢忘忧国，事定犹须待阖棺","s":"陆游《病起书怀》"},{"t":"纸上得来终觉浅，绝知此事要躬行","s":"陆游《冬夜读书示子聿》"},{"t":"山重水复疑无路，柳暗花明又一村","s":"陆游《游山西村》"},{"t":"三更灯火五更鸡，正是男儿读书时","s":"颜真卿《劝学》"},{"t":"黑发不知勤学早，白首方悔读书迟","s":"颜真卿《劝学》"},{"t":"会当凌绝顶，一览众山小","s":"杜甫《望岳》"},{"t":"读书破万卷，下笔如有神","s":"杜甫《奉赠韦左丞》"},{"t":"尔曹身与名俱灭，不废江河万古流","s":"杜甫《戏为六绝句》"},{"t":"随风潜入夜，润物细无声","s":"杜甫《春夜喜雨》"},{"t":"出师未捷身先死，长使英雄泪满襟","s":"杜甫《蜀相》"},{"t":"安得广厦千万间，大庇天下寒士俱欢颜","s":"杜甫《茅屋为秋风所破歌》"},{"t":"会当击水三千里，自信人生二百年","s":"毛泽东"},{"t":"世上无难事，只要肯登攀","s":"毛泽东"},{"t":"雄关漫道真如铁，而今迈步从头越","s":"毛泽东《忆秦娥》"},{"t":"不到长城非好汉，屈指行程二万","s":"毛泽东《清平乐》"},{"t":"长风破浪会有时，直挂云帆济沧海","s":"李白《行路难》"},{"t":"天生我材必有用，千金散尽还复来","s":"李白《将进酒》"},{"t":"大鹏一日同风起，扶摇直上九万里","s":"李白《上李邕》"},{"t":"宣父犹能畏后生，丈夫未可轻年少","s":"李白《上李邕》"},{"t":"仰天大笑出门去，我辈岂是蓬蒿人","s":"李白《南陵别儿童》"},{"t":"俱怀逸兴壮思飞，欲上青天揽明月","s":"李白《宣州谢朓楼饯别》"},{"t":"黄沙百战穿金甲，不破楼兰终不还","s":"王昌龄《从军行》"},{"t":"洛阳亲友如相问，一片冰心在玉壶","s":"王昌龄《芙蓉楼送辛渐》"},{"t":"千淘万漉虽辛苦，吹尽狂沙始到金","s":"刘禹锡《浪淘沙》"},{"t":"沉舟侧畔千帆过，病树前头万木春","s":"刘禹锡《酬乐天》"},{"t":"莫道桑榆晚，为霞尚满天","s":"刘禹锡《酬乐天》"},{"t":"东边日出西边雨，道是无晴却有晴","s":"刘禹锡《竹枝词》"},{"t":"博观而约取，厚积而薄发","s":"苏轼《稼说》"},{"t":"古之立大事者，不惟有超世之才，亦必有坚忍不拔之志","s":"苏轼《晁错论》"},{"t":"粗缯大布裹生涯，腹有诗书气自华","s":"苏轼《和董传留别》"},{"t":"竹杖芒鞋轻胜马，谁怕？一蓑烟雨任平生","s":"苏轼《定风波》"},{"t":"回首向来萧瑟处，归去，也无风雨也无晴","s":"苏轼《定风波》"},{"t":"不识庐山真面目，只缘身在此山中","s":"苏轼《题西林壁》"},{"t":"人生到处知何似，应似飞鸿踏雪泥","s":"苏轼《和子由渑池怀旧》"},{"t":"但愿人长久，千里共婵娟","s":"苏轼《水调歌头》"},{"t":"会挽雕弓如满月，西北望，射天狼","s":"苏轼《江城子》"},{"t":"问渠那得清如许，为有源头活水来","s":"朱熹《观书有感》"},{"t":"少年易老学难成，一寸光阴不可轻","s":"朱熹《偶成》"},{"t":"等闲识得东风面，万紫千红总是春","s":"朱熹《春日》"},{"t":"循序而渐进，熟读而精思","s":"朱熹"},{"t":"不畏浮云遮望眼，自缘身在最高层","s":"王安石《登飞来峰》"},{"t":"看似寻常最奇崛，成如容易却艰辛","s":"王安石《题张司业诗》"},{"t":"春风又绿江南岸，明月何时照我还","s":"王安石《泊船瓜洲》"},{"t":"千门万户曈曈日，总把新桃换旧符","s":"王安石《元日》"},{"t":"业精于勤，荒于嬉；行成于思，毁于随","s":"韩愈《进学解》"},{"t":"书山有路勤为径，学海无涯苦作舟","s":"韩愈《增广贤文》"},{"t":"蚍蜉撼大树，可笑不自量","s":"韩愈《调张籍》"},{"t":"大凡物不得其平则鸣","s":"韩愈《送孟东野序》"},{"t":"非淡泊无以明志，非宁静无以致远","s":"诸葛亮《诫子书》"},{"t":"鞠躬尽瘁，死而后已","s":"诸葛亮《后出师表》"},{"t":"志当存高远","s":"诸葛亮《诫外甥书》"},{"t":"静以修身，俭以养德","s":"诸葛亮《诫子书》"},{"t":"穷且益坚，不坠青云之志","s":"王勃《滕王阁序》"},{"t":"老当益壮，宁移白首之心","s":"王勃《滕王阁序》"},{"t":"海内存知己，天涯若比邻","s":"王勃《送杜少府》"},{"t":"落霞与孤鹜齐飞，秋水共长天一色","s":"王勃《滕王阁序》"},{"t":"莫愁前路无知己，天下谁人不识君","s":"高适《别董大》"},{"t":"丈夫贫贱应未足，今日相逢无酒钱","s":"高适《别董大》"},{"t":"忽如一夜春风来，千树万树梨花开","s":"岑参《白雪歌》"},{"t":"马上相逢无纸笔，凭君传语报平安","s":"岑参《逢入京使》"},{"t":"曾经沧海难为水，除却巫山不是云","s":"元稹《离思》"},{"t":"诚知此恨人人有，贫贱夫妻百事哀","s":"元稹《遣悲怀》"},{"t":"野火烧不尽，春风吹又生","s":"白居易《赋得古原草送别》"},{"t":"同是天涯沦落人，相逢何必曾相识","s":"白居易《琵琶行》"},{"t":"试玉要烧三日满，辨材须待七年期","s":"白居易《放言》"},{"t":"日出江花红胜火，春来江水绿如蓝","s":"白居易《忆江南》"},{"t":"慈恩塔下题名处，十七人中最少年","s":"白居易"},{"t":"时人不识凌云木，直待凌云始道高","s":"杜荀鹤《小松》"},{"t":"少年辛苦终身事，莫向光阴惰寸功","s":"杜荀鹤《题弟侄书堂》"},{"t":"采得百花成蜜后，为谁辛苦为谁甜","s":"罗隐《蜂》"},{"t":"他年我若为青帝，报与桃花一处开","s":"黄巢《题菊花》"},{"t":"冲天香阵透长安，满城尽带黄金甲","s":"黄巢《不第后赋菊》"},{"t":"商女不知亡国恨，隔江犹唱后庭花","s":"杜牧《泊秦淮》"},{"t":"江东子弟多才俊，卷土重来未可知","s":"杜牧《题乌江亭》"},{"t":"停车坐爱枫林晚，霜叶红于二月花","s":"杜牧《山行》"},{"t":"春风十里扬州路，卷上珠帘总不如","s":"杜牧《赠别》"},{"t":"溪云初起日沉阁，山雨欲来风满楼","s":"许浑《咸阳城东楼》"},{"t":"历览前贤国与家，成由勤俭破由奢","s":"李商隐《咏史》"},{"t":"春蚕到死丝方尽，蜡炬成灰泪始干","s":"李商隐《无题》"},{"t":"身无彩凤双飞翼，心有灵犀一点通","s":"李商隐《无题》"},{"t":"天意怜幽草，人间重晚晴","s":"李商隐《晚晴》"},{"t":"沉舟莫叹，前路犹长","s":"— 每日共勉"},{"t":"把每一天的努力，都变成未来的底气","s":"— 每日共勉"},{"t":"今天多一份坚持，明天少一份遗憾","s":"— 每日共勉"},{"t":"真正的强者，不是没有眼泪，而是含着眼泪奔跑","s":"— 每日共勉"},{"t":"种一棵树最好的时间是十年前，其次是现在","s":"— 每日共勉"},{"t":"把向往的地方，都变成脚下的路","s":"— 每日共勉"},{"t":"星光不问赶路人，时光不负有心人","s":"— 每日共勉"},{"t":"你只管努力，剩下的交给时间","s":"— 每日共勉"},{"t":"不是因为看到希望才坚持，而是坚持了才看到希望","s":"— 每日共勉"},{"t":"每一个不曾起舞的日子，都是对生命的辜负","s":"— 尼采"},{"t":"心之所向，素履以往；生如逆旅，一苇以航","s":"— 每日共勉"},{"t":"向前跑，迎着冷眼和嘲笑","s":"— 每日共勉"},{"t":"把业绩做厚，把心态做稳，把脚步做轻","s":"— 每日共勉"},{"t":"用心服务每一位患者，认真过好每一个今天","s":"— 每日共勉"},{"t":"目标在前，路在脚下，干就完了","s":"— 每日共勉"},{"t":"今天的每一次通话，都是明天的转机","s":"— 每日共勉"},{"t":"山高自有客行路，水深自有渡船人","s":"— 每日共勉"},{"t":"星光璀璨，是因为熬过了最黑的夜","s":"— 每日共勉"},{"t":"你流过的汗，都会变成将来的掌声","s":"— 每日共勉"},{"t":"越是不被看好的时候，越要沉住气","s":"— 每日共勉"},{"t":"把简单的事做到极致，就是不简单","s":"— 每日共勉"},{"t":"与其临渊羡鱼，不如退而结网","s":"— 每日共勉"},{"t":"每天进步一点点，复利就是奇迹","s":"— 每日共勉"},{"t":"客户的信任，是一通通电话攒出来的","s":"— 每日共勉"},{"t":"成交不是终点，而是信任的起点","s":"— 每日共勉"},{"t":"耐心是最好的销售话术","s":"— 每日共勉"},{"t":"把复杂留给自己，把简单留给患者","s":"— 每日共勉"},{"t":"服务有温度，专业有深度","s":"— 每日共勉"},{"t":"今天的到诊数，是你昨天的坚持","s":"— 每日共勉"},{"t":"别让明天的你，讨厌今天偷懒的自己","s":"— 每日共勉"},{"t":"细节里藏着成交的密码","s":"— 每日共勉"},{"t":"先成为值得信任的人，再谈成交","s":"— 每日共勉"},{"t":"把每一个拒绝，都当成一次复盘","s":"— 每日共勉"},{"t":"好心态，是业绩的第一生产力","s":"— 每日共勉"},{"t":"汗水不会骗人，数据不会说谎","s":"— 每日共勉"},{"t":"跑赢昨天的自己，就是胜利","s":"— 每日共勉"},{"t":"把目标刻在心里，把行动落在脚下","s":"— 每日共勉"},{"t":"坚持很难，但放弃更贵","s":"— 每日共勉"},{"t":"你现在的努力，是给未来的自己写信","s":"— 每日共勉"},{"t":"专业是底气，真诚是捷径","s":"— 每日共勉"},{"t":"今天的难，是明天的踩坑经验","s":"— 每日共勉"},{"t":"把时间花在哪里，结果就长在哪里","s":"— 每日共勉"},{"t":"主动一点，机会就多一点","s":"— 每日共勉"},{"t":"微笑是有声的服务，专业是无声的承诺","s":"— 每日共勉"},{"t":"别用战术的勤奋，掩盖战略的懒惰","s":"— 每日共勉"},{"t":"把复盘变成习惯，把优秀变成常态","s":"— 每日共勉"},{"t":"每一次回访，都是一次温暖的连接","s":"— 每日共勉"},{"t":"客户的满意，是我们最大的KPI","s":"— 每日共勉"},{"t":"把焦虑化为行动，把行动化为数据","s":"— 每日共勉"},{"t":"慢就是快，稳就是远","s":"— 每日共勉"},{"t":"做的越多，懂的越多；懂的越多，做的越好","s":"— 每日共勉"},{"t":"别怕起点低，就怕不出发","s":"— 每日共勉"},{"t":"把困难拆成小块，一块一块啃","s":"— 每日共勉"},{"t":"信任的崩塌只需一次，建立却要千次","s":"— 每日共勉"},{"t":"用专业赢得尊重，用结果证明价值","s":"— 每日共勉"},{"t":"今天多打一个电话，明天多一个可能","s":"— 每日共勉"},{"t":"把抱怨的时间，用来想解决办法","s":"— 每日共勉"},{"t":"越努力，越幸运；越专业，越自由","s":"— 每日共勉"},{"t":"你对待工作的态度，就是工作对待你的态度","s":"— 每日共勉"},{"t":"把每一个今天，都过成代表作","s":"— 每日共勉"},{"t":"别等风口，先让自己长出翅膀","s":"— 每日共勉"},{"t":"客户的每一句疑问，都是成交的信号","s":"— 每日共勉"},{"t":"坚持长期主义，时间会奖励深耕者","s":"— 每日共勉"},{"t":"把目标可视化，把过程量化","s":"— 每日共勉"},{"t":"今天不狠，明天就狠不下来","s":"— 每日共勉"},{"t":"好记性不如烂笔头，好业绩不如勤复盘","s":"— 每日共勉"},{"t":"把不确定，变成每天的确定动作","s":"— 每日共勉"},{"t":"服务别人，就是成就自己","s":"— 每日共勉"},{"t":"把压力调到合适的档，跑得更久","s":"— 每日共勉"},{"t":"先完成，再完美","s":"— 每日共勉"},{"t":"把节奏稳住，把心态放平","s":"— 每日共勉"},{"t":"你负责努力，市场负责打分","s":"— 每日共勉"},{"t":"把每一次失败，都记成下次的成功费","s":"— 每日共勉"},{"t":"专业的事，交给专业的人；用心的事，交给自己","s":"— 每日共勉"},{"t":"今天的播种，秋天的收获","s":"— 每日共勉"},{"t":"把\"我不行\"换成\"我试试\"","s":"— 每日共勉"},{"t":"机会总是伪装成困难的样子","s":"— 每日共勉"},{"t":"把团队的目标，当成自己的目标","s":"— 每日共勉"},{"t":"细节见人品，数据见实力","s":"— 每日共勉"},{"t":"把沟通做透，把误解清零","s":"— 每日共勉"},{"t":"今天的沉淀，是明天的壁垒","s":"— 每日共勉"},{"t":"别让情绪，替你做决定","s":"— 每日共勉"},{"t":"把长板做到极致，短板交给协作","s":"— 每日共勉"},{"t":"每天清空一次傲慢，装满一点谦逊","s":"— 每日共勉"},{"t":"把客户当家人，把工作当事业","s":"— 每日共勉"},{"t":"结果不会陪你演戏","s":"— 每日共勉"},{"t":"把焦虑折成纸船，放它顺流而下","s":"— 每日共勉"},{"t":"深耕一个领域，熬过无聊，就是专家","s":"— 每日共勉"},{"t":"把今天过好，就是对明年最好的规划","s":"— 每日共勉"},{"t":"你怎样度过一天，就怎样度过一生","s":"— 每日共勉"},{"t":"把\"做不到\"拆成\"先做一步\"","s":"— 每日共勉"},{"t":"信任，是最高效的成交货币","s":"— 每日共勉"},{"t":"把标准定高一点，结果才不会太低","s":"— 每日共勉"},{"t":"今天的复盘，明天的捷径","s":"— 每日共勉"},{"t":"别用别人的节奏，乱了自己的步伐","s":"— 每日共勉"},{"t":"把复杂问题，讲成人话","s":"— 每日共勉"},{"t":"坚持做对的事，时间会给出答案","s":"— 每日共勉"},{"t":"你流的每滴汗，都在为选择投票","s":"— 每日共勉"},{"t":"把\"以后再说\"改成\"现在就做\"","s":"— 每日共勉"},{"t":"专业度，决定信任度","s":"— 每日共勉"},{"t":"把每个周末，都当成新的起点","s":"— 每日共勉"},{"t":"今天的认真，是明天的运气","s":"— 每日共勉"},{"t":"把抱怨调成静音，把行动调成外放","s":"— 每日共勉"},{"t":"越具体，越有力量","s":"— 每日共勉"},{"t":"把目标拆成周，把周拆成天","s":"— 每日共勉"},{"t":"真正的稳定，是能力的稳定","s":"— 每日共勉"},{"t":"把客户的问题，当成自己的课题","s":"— 每日共勉"},{"t":"今天多学一点，明天少求一点","s":"— 每日共勉"},{"t":"把\"难\"字从字典里，翻到最后一页","s":"— 每日共勉"},{"t":"行动，是治愈焦虑的良药","s":"— 每日共勉"},{"t":"把每一次通话，都当成最后一次机会","s":"— 每日共勉"},{"t":"你对待细节的样子，就是结果的样子","s":"— 每日共勉"},{"t":"把\"等机会\"换成\"造机会\"","s":"— 每日共勉"},{"t":"深耕细作，静水流深","s":"— 每日共勉"},{"t":"把今天的事，今天做完","s":"— 每日共勉"},{"t":"专业的尽头，是真诚","s":"— 每日共勉"},{"t":"把目标写下来，它就从愿望变成计划","s":"— 每日共勉"},{"t":"今天的辛苦，是明天的轻松","s":"— 每日共勉"},{"t":"别让\"差不多\"，毁了\"差很多\"","s":"— 每日共勉"},{"t":"把复盘当饭吃，把复盘当习惯","s":"— 每日共勉"},{"t":"你越具体，客户越信任","s":"— 每日共勉"},{"t":"把每个拒绝，都当成被需要的信号","s":"— 每日共勉"},{"t":"坚持做难而正确的事","s":"— 每日共勉"},{"t":"把时间留给重要的事，把精力留给重要的人","s":"— 每日共勉"},{"t":"今天的到诊，是昨天的铺垫","s":"— 每日共勉"},{"t":"把\"我不懂\"变成\"我马上学\"","s":"— 每日共勉"},{"t":"结果导向，过程用心","s":"— 每日共勉"},{"t":"把复杂留给自己，简单留给客户","s":"— 每日共勉"},{"t":"你怎样理解服务，客户就怎样理解你","s":"— 每日共勉"},{"t":"把每次低谷，都当成蓄力的深蹲","s":"— 每日共勉"},{"t":"今天的努力，是给未来的自己存钱","s":"— 每日共勉"},{"t":"把\"怕麻烦\"换成\"怕落后\"","s":"— 每日共勉"},{"t":"专业+温度，就是最好的转化","s":"— 每日共勉"},{"t":"把今天过成想要的样子","s":"— 每日共勉"},{"t":"你跑过的路，每一步都算数","s":"— 每日共勉"},{"t":"把标准立起来，把借口放下去","s":"— 每日共勉"},{"t":"今天的沟通，是明天的转机","s":"— 每日共勉"},{"t":"把\"不可能\"拆成\"不，可能\"","s":"— 每日共勉"},{"t":"深耕一个赛道，跑赢一片红海","s":"— 每日共勉"},{"t":"把每个客户，都当成唯一的客户","s":"— 每日共勉"},{"t":"今天的沉淀，是明天的护城河","s":"— 每日共勉"},{"t":"别让忙碌，掩盖了思考","s":"— 每日共勉"},{"t":"把目标挂墙上，把行动写手上","s":"— 每日共勉"},{"t":"你对待数据的认真，就是对待结果的认真","s":"— 每日共勉"},{"t":"把\"再等等\"换成\"就现在\"","s":"— 每日共勉"},{"t":"专业的人，做专业的事，拿专业的结果","s":"— 每日共勉"},{"t":"今天的坚持，是明天的习惯","s":"— 每日共勉"},{"t":"把客户的需求，听成自己的任务","s":"— 每日共勉"},{"t":"别让情绪，跑赢理智","s":"— 每日共勉"},{"t":"把\"我不行\"改成\"我学\"","s":"— 每日共勉"},{"t":"今天的复盘，是明天的护身符","s":"— 每日共勉"},{"t":"你怎样过一天，就怎样过一年","s":"— 每日共勉"},{"t":"把复杂的事，做简单；把简单的事，做极致","s":"— 每日共勉"},{"t":"今天多问一句，明天少走弯路","s":"— 每日共勉"},{"t":"把信任，当成最贵的资产来经营","s":"— 每日共勉"},{"t":"坚持长期主义，拒绝短期诱惑","s":"— 每日共勉"},{"t":"你今天的样子，是昨天的积累","s":"— 每日共勉"},{"t":"把\"做不到\"换成\"怎么做到\"","s":"— 每日共勉"},{"t":"今天的认真，是明天的自由","s":"— 每日共勉"},{"t":"把每个开始，都当成最好的开始","s":"— 每日共勉"},{"t":"专业是盾，真诚是剑","s":"— 每日共勉"},{"t":"今天的播种，是时间的利息","s":"— 每日共勉"},{"t":"别让\"习惯性\"掩盖了\"更好\"","s":"— 每日共勉"},{"t":"把目标变成每天的待办","s":"— 每日共勉"},{"t":"你流的汗，终会变成光","s":"— 每日共勉"},{"t":"把\"等机会\"变成\"找机会\"","s":"— 每日共勉"},{"t":"今天的努力，是给未来的情书","s":"— 每日共勉"},{"t":"把客户当朋友，把服务当修行","s":"— 每日共勉"},{"t":"坚持，是最低调的超能力","s":"— 每日共勉"},{"t":"你怎样对待时间，时间就怎样对待你","s":"— 每日共勉"},{"t":"把\"难搞\"的客户，当成\"难学\"的课","s":"— 每日共勉"},{"t":"今天的积累，是明天的选择权","s":"— 每日共勉"},{"t":"把行动变成惯性，把优秀变成本能","s":"— 每日共勉"},{"t":"你现在的高度，是过去坚持的总和","s":"— 每日共勉"},{"t":"把每个今天，都当成倒计时","s":"— 每日共勉"},{"t":"专业的事，不偷懒；重要的事，不拖延","s":"— 每日共勉"},{"t":"今天的到诊，是信任的兑现","s":"— 每日共勉"},{"t":"把\"我不擅\"换成\"我练\"","s":"— 每日共勉"},{"t":"你怎样理解专业，客户就怎样付费","s":"— 每日共勉"},{"t":"把今天过好，就是对未来最好的承诺","s":"— 每日共勉"},{"t":"坚持做难而正确的事，时间会奖励你","s":"— 每日共勉"},{"t":"你跑过的每一步，都在拉近与目标的距离","s":"— 每日共勉"},{"t":"把\"以后\"改成\"此刻\"","s":"— 每日共勉"},{"t":"今天的辛苦，是明天的底气","s":"— 每日共勉"},{"t":"把客户的声音，当成改进的方向","s":"— 每日共勉"},{"t":"你怎样过当下，就怎样过余生","s":"— 每日共勉"},{"t":"把\"做不到\"拆成\"做一点\"","s":"— 每日共勉"},{"t":"把标准提高一寸，结果拉开一丈","s":"— 每日共勉"},{"t":"你怎样对待工作，工作就怎样对待你","s":"— 每日共勉"},{"t":"把每个拒绝，都当成一次成长","s":"— 每日共勉"},{"t":"今天的沉淀，是明天的从容","s":"— 每日共勉"},{"t":"把\"再看看\"换成\"马上做\"","s":"— 每日共勉"},{"t":"专业是信任的门票","s":"— 每日共勉"},{"t":"你今天的努力，是明天的答案","s":"— 每日共勉"},{"t":"把目标拆细，把执行做狠","s":"— 每日共勉"},{"t":"今天的沟通，是明天的信任","s":"— 每日共勉"},{"t":"把\"我不行\"改成\"我上\"","s":"— 每日共勉"},{"t":"你怎样度过今天，就怎样度过今年","s":"— 每日共勉"},{"t":"把复杂留给自己，把确定留给客户","s":"— 每日共勉"},{"t":"今天的坚持，是明天的自由","s":"— 每日共勉"},{"t":"把每个客户，都当成长期的关系","s":"— 每日共勉"},{"t":"你流过的汗，都会变成勋章","s":"— 每日共勉"},{"t":"把\"等风口\"换成\"造风\"","s":"— 每日共勉"},{"t":"今天的努力，是给未来的自己最好的礼物","s":"— 每日共勉"},{"t":"把客户的问题，当成自己的机会","s":"— 每日共勉"},{"t":"你怎样理解服务，就怎样收获信任","s":"— 每日共勉"},{"t":"把今天过成代表作，把每天过成里程碑","s":"— 每日共勉"},{"t":"坚持做对的事，剩下的交给时间","s":"— 每日共勉"},{"t":"你跑过的路，都算数","s":"— 每日共勉"},{"t":"把\"难\"拆成\"不难\"","s":"— 每日共勉"},{"t":"今天的复盘，是明天的加速度","s":"— 每日共勉"},{"t":"把每个开始，都认真对待","s":"— 每日共勉"},{"t":"你现在的努力，是未来选择的底气","s":"— 每日共勉"},{"t":"把\"以后再说\"换成\"现在开始\"","s":"— 每日共勉"},{"t":"专业+真诚，就是最好的成交力","s":"— 每日共勉"},{"t":"今天的到诊，是信任的回声","s":"— 每日共勉"},{"t":"把客户当伙伴，把服务当承诺","s":"— 每日共勉"},{"t":"你怎样对待每一天，就怎样对待这一生","s":"— 每日共勉"},{"t":"把\"我不懂\"换成\"我学起来\"","s":"— 每日共勉"},{"t":"今天的辛苦，是明天的自由","s":"— 每日共勉"},{"t":"把目标写进每天的计划里","s":"— 每日共勉"},{"t":"你流过的泪，都会变成光","s":"— 每日共勉"},{"t":"把\"等机会\"换成\"抢机会\"","s":"— 每日共勉"},{"t":"今天的努力，是给未来的自己最好的交代","s":"— 每日共勉"},{"t":"把每个客户，都当成唯一的托付","s":"— 每日共勉"},{"t":"你怎样理解专业，客户就怎样信任你","s":"— 每日共勉"},{"t":"把今天过好，就是对明年最好的回答","s":"— 每日共勉"},{"t":"坚持长期主义，时间会奖励深耕的人","s":"— 每日共勉"},{"t":"你跑过的每一步，都离目标更近","s":"— 每日共勉"},{"t":"把\"难搞\"当成\"难得\"","s":"— 每日共勉"},{"t":"今天的沉淀，是明天的底气","s":"— 每日共勉"},{"t":"把\"再等等\"换成\"就现在做\"","s":"— 每日共勉"},{"t":"专业是信任的起点","s":"— 每日共勉"},{"t":"你今天的认真，是明天的运气","s":"— 每日共勉"},{"t":"把目标拆成动作，把动作变成习惯","s":"— 每日共勉"},{"t":"今天的沟通，是明天的成交","s":"— 每日共勉"},{"t":"把\"我不行\"改成\"我可以学\"","s":"— 每日共勉"},{"t":"你怎样度过今天，就怎样度过这一年","s":"— 每日共勉"},{"t":"把复杂留给自己，把简单留给伙伴","s":"— 每日共勉"},{"t":"今天的坚持，是明天的从容","s":"— 每日共勉"},{"t":"把每个客户，都当成长期的缘分","s":"— 每日共勉"},{"t":"你流的每滴汗，都在为未来投票","s":"— 每日共勉"},{"t":"把\"等风口\"换成\"自己造风\"","s":"— 每日共勉"},{"t":"今天的努力，是给未来的自己最好的回报","s":"— 每日共勉"},{"t":"把客户的需求，当成自己的使命","s":"— 每日共勉"},{"t":"你怎样理解服务，就怎样赢得信任","s":"— 每日共勉"},{"t":"把今天过成代表作","s":"— 每日共勉"},{"t":"坚持做难而正确的事，时间看得见","s":"— 每日共勉"},{"t":"你跑过的路，每一步都不白跑","s":"— 每日共勉"},{"t":"把\"难\"字翻篇，把\"做\"字写满","s":"— 每日共勉"},{"t":"今天的复盘，是明天的底气","s":"— 每日共勉"},{"t":"把每个开始，都当成重要的开始","s":"— 每日共勉"},{"t":"你现在的努力，是未来选择的资本","s":"— 每日共勉"},{"t":"把\"以后再说\"换成\"从今天开始\"","s":"— 每日共勉"},{"t":"专业加温度，就是最好的转化力","s":"— 每日共勉"},{"t":"今天的到诊，是信任的回响","s":"— 每日共勉"},{"t":"把客户当家人，把服务当修行","s":"— 每日共勉"},{"t":"把\"我不懂\"换成\"我马上学\"","s":"— 每日共勉"},{"t":"今天的辛苦，是明天的自由与从容","s":"— 每日共勉"},{"t":"把目标写进每天的待办，把待办变成结果","s":"— 每日共勉"},{"t":"你流过的泪，都会变成照亮前路的光","s":"— 每日共勉"},{"t":"把\"等机会\"换成\"创造机会\"","s":"— 每日共勉"},{"t":"今天的努力，是给未来的自己最好的答案","s":"— 每日共勉"},{"t":"把每个客户，都当成唯一的托付与信任","s":"— 每日共勉"},{"t":"你怎样理解专业，客户就怎样把信任交给你","s":"— 每日共勉"},{"t":"把今天过好，就是对明年最好的承诺与交代","s":"— 每日共勉"}];
+function dailyQuote(){
+  var now=new Date();
+  var start=new Date(now.getFullYear(),0,0);
+  var doy=Math.floor((now-start)/86400000);          // 一年中的第几天
+  var idx=(doy*7 + now.getFullYear()) % DAILY_QUOTES.length;  // 相邻天不同，逐年偏移
+  return DAILY_QUOTES[idx];
+}
+function todayLabel(){
+  var d=new Date(), p=function(n){return ('0'+n).slice(-2);};
+  var wk=['日','一','二','三','四','五','六'][d.getDay()];
+  return d.getFullYear()+'年'+p(d.getMonth()+1)+'月'+p(d.getDate())+'日 星期'+wk;
+}
+function flipQuote(){
+  var banner=document.querySelector('.quote-banner');
+  if(!banner) return;
+  var txt=banner.querySelector('.q-text'), src=banner.querySelector('.q-src');
+  if(!txt) return;
+  var idx=Math.floor(Math.random()*DAILY_QUOTES.length);
+  var q=DAILY_QUOTES[idx];
+  txt.textContent=q.t;
+  if(src) src.textContent=q.s;
+  txt.classList.remove('q-anim'); void txt.offsetWidth; txt.classList.add('q-anim');
+}
+
+function renderDashboard(){
+  var ld = latestDate();
+  var month = ld.slice(0,7);
+  var dayList  = records.filter(function(r){return r.date===ld;});
+  var monList  = records.filter(function(r){return r.date.slice(0,7)===month;});
+  var D = sum(dayList), M = sum(monList);
+  var daysInMonth = new Date(+month.slice(0,4), +month.slice(5,7), 0).getDate();
+
+  var q=dailyQuote();
+  var html = '';
+  /* 每日一言横幅 */
+  html += '<div class="quote-banner">'
+    + '<div class="q-text">'+q.t+'</div>'
+    + '<div class="q-meta"><div class="q-src">'+q.s+'</div><div class="q-flip" onclick="flipQuote()">换一句 ↻</div></div>'
+    + '</div>';
+  /* 当日汇总 */
+  html += '<div class="sec-title"><span class="dot"></span>当日汇总 <span class="meta">'+ld+'（最新数据日）· 点击卡片查看各渠道明细</span></div>';
+  html += '<div class="kpi-grid">'
+    + kpi('总数据', D.tot.toLocaleString(), 'c-blue',  'day','tot')
+    + kpi('有效',   D.val.toLocaleString(), 'c-dark',  'day','val')
+    + kpi('推进',   D.push.toLocaleString(),'c-orange','day','push')
+    + kpi('预约',   D.book.toLocaleString(),'c-teal',  'day','book')
+    + kpi('到诊',   D.arr+'<small>人</small>','c-red', 'day','arr')
+    + kpi('总转化', fmtPct(D.cvrt),         'c-green', 'day','cvrt')
+    + '</div>';
+
+  /* 当月汇总 */
+  html += '<div class="sec-title"><span class="dot blue"></span>当月汇总 <span class="meta">'+month+' · 已统计 '+daysInMonth+' 天</span></div>';
+  html += '<div class="kpi-grid">'
+    + kpi('月总数据', M.tot.toLocaleString(),  'c-blue',  'mon','tot')
+    + kpi('月有效',   M.val.toLocaleString(),  'c-dark',  'mon','val')
+    + kpi('月推进',   M.push.toLocaleString(), 'c-orange','mon','push')
+    + kpi('月预约',   M.book.toLocaleString(), 'c-teal',  'mon','book')
+    + kpi('月到诊',   M.arr.toLocaleString()+'<small>人</small>','c-red','mon','arr')
+    + kpi('月总转化', fmtPct(M.cvrt),          'c-green', 'mon','cvrt')
+    + '</div>';
+
+  /* 图表行 */
+  html += '<div class="chart-row">'
+    + '<div class="panel"><h3>近 7 日总数据 / 到诊趋势</h3>'
+    + '<div class="legend"><span class="lg"><i class="sw" style="background:#1d6fe0"></i>总数据</span><span class="lg"><i class="sw" style="background:#e6a23c"></i>到诊</span></div>'
+    + '<div id="trendChart"></div></div>'
+    + '<div class="panel"><h3>'+ld+' · 各渠道到诊</h3><div class="legend"><span class="lg"><i class="sw" style="background:#0e9f9f"></i>当日到诊（人）</span></div>'
+    + '<div id="orgChart"></div></div>'
+    + '</div>';
+
+  setView('仪表盘', html);
+  drawTrend(ld);
+  drawOrgBars(ld);
+}
+
+function kpi(label, value, cls, scope, metric){
+  return '<div class="kpi" onclick="openDetail(\''+scope+'\',\''+metric+'\',\''+label+'\')">'
+    + '<div class="label">'+label
+    + '<svg class="arrow" viewBox="0 0 24 24" fill="none"><path d="M7 17 17 7M9 7h8v8" stroke="#8492a6" stroke-width="2" stroke-linecap="round"/></svg></div>'
+    + '<div class="value '+cls+'">'+value+'</div></div>';
+}
+
+/* 近 7 日 组合图：柱=总数据（左轴） 折线=到诊（右轴） */
+function drawTrend(ld){
+  var days=[];
+  for(var i=6;i>=0;i--){
+    var d=new Date(ld+'T00:00:00'); d.setDate(d.getDate()-i);
+    days.push(d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2));
+  }
+  var data = days.map(function(day){
+    var s = sum(records.filter(function(r){return r.date===day;}));
+    return {day:day.slice(5), tot:s.tot, arr:s.arr};
+  });
+  var W=620,H=260,pl=48,pr=40,pt=16,pb=34;
+  var cw=(W-pl-pr)/data.length;
+  var maxTot=Math.max.apply(null,data.map(function(d){return d.tot;}))*1.15 || 1;
+  var maxArr=Math.max.apply(null,data.map(function(d){return d.arr;}))*1.3 || 1;
+
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%">';
+  for(var g=0;g<=4;g++){
+    var y=pt+(H-pt-pb)*g/4;
+    s+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eef2f7"/>';
+    var v=Math.round(maxTot*(1-g/4));
+    s+='<text x="'+(pl-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="#8492a6">'+v+'</text>';
+    var hv=Math.round(maxArr*(1-g/4));
+    s+='<text x="'+(W-pr+8)+'" y="'+(y+4)+'" font-size="10" fill="#e6a23c">'+hv+'</text>';
+  }
+  var pts=[];
+  data.forEach(function(d,i){
+    var x=pl+cw*i+cw/2;
+    var bh=(H-pt-pb)*d.tot/maxTot;
+    s+='<rect x="'+(x-cw*0.26)+'" y="'+(H-pb-bh)+'" width="'+(cw*0.52)+'" height="'+bh+'" rx="3" fill="#1d6fe0"><title>'+d.day+' 总数据 '+d.tot+'</title></rect>';
+    var y=H-pb-(H-pt-pb)*d.arr/maxArr;
+    pts.push([x,y]);
+    s+='<text x="'+x+'" y="'+(H-pb+16)+'" text-anchor="middle" font-size="10" fill="#8492a6">'+d.day+'</text>';
+  });
+  var path=pts.map(function(p,i){return (i?'L':'M')+p[0]+' '+p[1];}).join(' ');
+  s+='<path d="'+path+'" fill="none" stroke="#e6a23c" stroke-width="2.5"/>';
+  pts.forEach(function(p,i){
+    s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="#fff" stroke="#e6a23c" stroke-width="2"><title>'+data[i].day+' 到诊 '+data[i].arr+'</title></circle>';
+  });
+  s+='</svg>';
+  document.getElementById('trendChart').innerHTML=s;
+}
+
+/* 各渠道到诊横向柱状图（当日） */
+function drawOrgBars(ld){
+  var rows = ORGS.map(function(org){
+    var s=sum(records.filter(function(r){return r.date===ld && r.org===org;}));
+    return {org:org, arr:s.arr};
+  }).sort(function(a,b){return b.arr-a.arr;});
+  var max=Math.max.apply(null,rows.map(function(r){return r.arr;})) || 1;
+  var W=460, rh=34, H=rows.length*rh+10, pl=110, pr=60;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%">';
+  rows.forEach(function(r,i){
+    var y=i*rh+8, bw=(W-pl-pr)*r.arr/max;
+    s+='<text x="'+(pl-8)+'" y="'+(y+13)+'" text-anchor="end" font-size="12" fill="#1f2d3d">'+r.org+'</text>';
+    s+='<rect x="'+pl+'" y="'+y+'" width="'+Math.max(bw,2)+'" height="18" rx="4" fill="#0e9f9f"><title>'+r.org+' 到诊 '+r.arr+' 人</title></rect>';
+    s+='<text x="'+(pl+bw+8)+'" y="'+(y+13)+'" font-size="11" fill="#0e9f9f" font-weight="700">'+r.arr+' 人</text>';
+  });
+  s+='</svg>';
+  document.getElementById('orgChart').innerHTML=s;
+}
+
+/* ==================== 弹窗：各渠道明细 ==================== */
+var METRICS = {
+  tot: {name:'总数据', get:function(s){return s.tot;},  fmt:function(s){return s.tot.toLocaleString();}},
+  val: {name:'有效',   get:function(s){return s.val;},  fmt:function(s){return s.val.toLocaleString();}},
+  push:{name:'推进',   get:function(s){return s.push;}, fmt:function(s){return s.push.toLocaleString();}},
+  book:{name:'预约',   get:function(s){return s.book;}, fmt:function(s){return s.book.toLocaleString();}},
+  arr: {name:'到诊',   get:function(s){return s.arr;},  fmt:function(s){return s.arr.toLocaleString();}},
+  cvrt:{name:'总转化', get:function(s){return s.cvrt;}, fmt:function(s){return fmtPct(s.cvrt);}}
+};
+function openDetail(scope, metric, label){
+  var ld=latestDate(), month=ld.slice(0,7);
+  var list = records.filter(function(r){ return scope==='day'? r.date===ld : r.date.slice(0,7)===month; });
+  var rows = ORGS.map(function(org){
+    var s=sum(list.filter(function(r){return r.org===org;}));
+    return {org:org, s:s};
+  });
+  var m=METRICS[metric];
+  rows.sort(function(a,b){return m.get(b.s)-m.get(a.s);});
+  var T=sum(list);
+
+  document.getElementById('modalTitle').textContent =
+    (scope==='day'? ld+' · 日' : month+' · 月') + m.name + ' — 各渠道明细';
+
+  var h='<div class="table-wrap"><table><thead><tr>'
+    +'<th>渠道</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var cell=function(key,val){ return '<td class="'+(key===metric?'hl':'')+'">'+val+'</td>'; };
+    h+='<tr><td>'+r.org+'</td>'
+      +cell('tot',  r.s.tot.toLocaleString())
+      +cell('val',  r.s.val.toLocaleString())
+      +cell('push', r.s.push.toLocaleString())
+      +cell('book', r.s.book.toLocaleString())
+      +cell('arr',  r.s.arr.toLocaleString())
+      +cell('cvrt', fmtPct(r.s.cvrt))+'</tr>';
+  });
+  h+='</tbody><tfoot><tr><td>合计</td>'
+    +'<td class="'+(metric==='tot'?'hl':'')+'">'+T.tot.toLocaleString()+'</td>'
+    +'<td class="'+(metric==='val'?'hl':'')+'">'+T.val.toLocaleString()+'</td>'
+    +'<td class="'+(metric==='push'?'hl':'')+'">'+T.push.toLocaleString()+'</td>'
+    +'<td class="'+(metric==='book'?'hl':'')+'">'+T.book.toLocaleString()+'</td>'
+    +'<td class="'+(metric==='arr'?'hl':'')+'">'+T.arr.toLocaleString()+'</td>'
+    +'<td class="'+(metric==='cvrt'?'hl':'')+'">'+fmtPct(T.cvrt)+'</td></tr></tfoot></table></div>';
+  document.getElementById('modalBody').innerHTML=h;
+  document.getElementById('mask').classList.add('show');
+  animateNumbers(document.getElementById('modalBody'));
+}
+function closeModal(){ document.getElementById('mask').classList.remove('show'); }
+
+/* ==================== 视图：数据管理 ==================== */
+function renderManage(){
+  var h='<div class="tip-bar" id="tipBar">数据已积累较多，建议点击本页「导出 JSON」做一次备份。</div>'
+    +'<div class="panel"><h3>录入数据</h3>'
+    +'<div class="form-grid" style="margin-top:10px">'
+    + field('日期','<input type="date" id="f_date" value="'+latestDate()+'">')
+    + field('渠道','<select id="f_org">'+ORGS.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>')
+    + field('客服','<select id="f_staff">'+STAFF.map(function(s){return '<option>'+s+'</option>';}).join('')+'</select>')
+    + field('总数据量','<input type="number" id="f_tot" min="0" placeholder="如 55">')
+    + field('有效量','<input type="number" id="f_val" min="0" placeholder="如 44">')
+    + field('推进量','<input type="number" id="f_push" min="0" placeholder="如 29">')
+    + field('预约量','<input type="number" id="f_book" min="0" placeholder="如 16">')
+    + field('到诊量','<input type="number" id="f_arr" min="0" placeholder="如 11">')
+    +'</div>'
+    +'<div class="toolbar"><button class="btn primary" onclick="addRecord()">＋ 保存记录</button>'
+    +'<button class="btn" onclick="exportJSON()">导出 JSON</button>'
+    +'<button class="btn" onclick="document.getElementById(\'importFile\').click()">导入恢复</button>'
+    +'<button class="btn" onclick="exportCSV()">导出 CSV</button>'
+    +'<button class="btn danger" onclick="clearSample()">清空示例数据</button>'
+    +'<button class="btn danger" onclick="clearAll()">清空全部数据</button></div>'
+    +'<div style="font-size:12px;color:var(--txt2)">指标口径：总转化 = 到诊 ÷ 总数据。同一「日期+渠道+客服」重复保存会覆盖旧记录。</div></div>';
+
+  h+='<div class="sec-title"><span class="dot blue"></span>数据明细 <span class="meta">共 '+records.length+' 条</span></div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
+    +'<th>日期</th><th>渠道</th><th>客服</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th><th>操作</th>'
+    +'</tr></thead><tbody id="recTbody"></tbody></table></div></div>';
+  setView('数据管理', h);
+  renderRecRows();
+  if(records.length>=30) document.getElementById('tipBar').classList.add('show');
+}
+function field(label,inner){ return '<div class="field"><label>'+label+'</label>'+inner+'</div>'; }
+
+function renderRecRows(){
+  var sorted=records.slice().sort(function(a,b){
+    return b.date===a.date ? ORGS.indexOf(a.org)-ORGS.indexOf(b.org) : (b.date<a.date?-1:1);
+  });
+  var h='';
+  sorted.slice(0,300).forEach(function(r){
+    var s=sum([r]);
+    h+='<tr><td>'+r.date+'</td><td>'+r.org+'</td><td>'+(r.staff||'-')+'</td><td>'+r.tot+'</td><td>'+r.val+'</td>'
+      +'<td>'+r.push+'</td><td>'+r.book+'</td><td>'+r.arr+'</td><td>'+fmtPct(s.cvrt)+'</td>'
+      +'<td><button class="btn danger" style="padding:4px 10px;min-height:30px" onclick="delRecord('+r.id+')">删除</button></td></tr>';
+  });
+  document.getElementById('recTbody').innerHTML = h || '<tr><td colspan="10" class="empty">暂无数据，请先录入</td></tr>';
+}
+function addRecord(){
+  var g=function(id){return document.getElementById(id).value;};
+  var date=g('f_date'), org=g('f_org'), staff=g('f_staff');
+  var tot=+g('f_tot')||0, val=+g('f_val')||0, push=+g('f_push')||0, book=+g('f_book')||0, arr=+g('f_arr')||0;
+  if(!date){ alert('请选择日期'); return; }
+  if(tot+val+push+book+arr===0){ alert('请至少填写一项数据'); return; }
+  var exist=records.find(function(r){return r.date===date && r.org===org && r.staff===staff;});
+  if(exist){ exist.tot=tot; exist.val=val; exist.push=push; exist.book=book; exist.arr=arr; }
+  else{
+    var nid=records.reduce(function(m,r){return Math.max(m,r.id);},0)+1;
+    records.push({id:nid,date:date,org:org,staff:staff,tot:tot,val:val,push:push,book:book,arr:arr});
+  }
+  saveData(); renderManage();
+}
+function delRecord(id){
+  records=records.filter(function(r){return r.id!==id;});
+  saveData(); renderRecRows();
+}
+function clearSample(){
+  if(!confirm('确定清空示例数据并从头开始录入吗？'))return;
+  records=[]; saveData(); renderManage();
+}
+function clearAll(){
+  if(!confirm('⚠️ 将删除全部 '+records.length+' 条数据，此操作不可恢复！\n建议先「导出 JSON」备份。确定继续吗？'))return;
+  if(!confirm('再次确认：真的要清空全部数据吗？'))return;
+  records=[]; saveData(); renderManage();
+}
+
+/* ==================== 视图：龙虎榜 ==================== */
+function renderRank(){
+  var ld=latestDate(), month=ld.slice(0,7);
+  var list=records.filter(function(r){return r.date.slice(0,7)===month;});
+  var rows=STAFF.map(function(st){
+    var s=sum(list.filter(function(r){return r.staff===st;}));
+    return {org:st,s:s};
+  }).sort(function(a,b){return b.s.arr-a.s.arr;});
+  var max=Math.max.apply(null,rows.map(function(r){return r.s.arr;}))||1;
+  var h='<div class="sec-title"><span class="dot"></span>'+month+' 客服到诊龙虎榜 <span class="meta">按月到诊数排名 · 点击人员查看漏斗明细</span></div><div class="rank-list">';
+  rows.forEach(function(r,i){
+    h+='<div class="rank-item '+(i<3?'r'+(i+1):'')+'" onclick="openStaffDetail(\''+r.org+'\')">'
+      +'<div class="rank-no">'+(i+1)+'</div>'
+      +'<div class="rank-name">'+r.org+'</div>'
+      +'<div class="rank-bar"><i style="width:'+(r.s.arr/max*100).toFixed(1)+'%" title="转化 '+fmtPct(r.s.cvrt)+'"></i></div>'
+      +'<div class="rank-num">'+r.s.arr+' 人<div style="font-size:11px;color:var(--txt2);font-weight:400">转化 '+fmtPct(r.s.cvrt)+'</div></div></div>';
+  });
+  h+='</div>';
+  setView('龙虎榜单', h);
+}
+
+/* 客服漏斗明细弹窗：当日 / 月度 / 年度汇总 + 当月各渠道拆分 */
+function openStaffDetail(st){
+  var ld=latestDate(), month=ld.slice(0,7), year=ld.slice(0,4);
+  var mine=records.filter(function(r){return r.staff===st;});
+  var periods=[
+    {label:'当日（'+ld+'）',    s:sum(mine.filter(function(r){return r.date===ld;}))},
+    {label:'当月（'+month+'）', s:sum(mine.filter(function(r){return r.date.slice(0,7)===month;}))},
+    {label:'年度（'+year+'）',  s:sum(mine.filter(function(r){return r.date.slice(0,4)===year;}))}
+  ];
+  document.getElementById('modalTitle').textContent = st+' — 客服漏斗明细';
+  var h='<div class="table-wrap"><table><thead><tr>'
+    +'<th>周期</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th></tr></thead><tbody>';
+  periods.forEach(function(p){
+    h+='<tr><td>'+p.label+'</td><td>'+p.s.tot.toLocaleString()+'</td><td>'+p.s.val.toLocaleString()+'</td>'
+      +'<td>'+p.s.push.toLocaleString()+'</td><td>'+p.s.book.toLocaleString()+'</td>'
+      +'<td class="hl">'+p.s.arr.toLocaleString()+'</td><td>'+fmtPct(p.s.cvrt)+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+
+  /* 当月各渠道拆分 */
+  var monList=mine.filter(function(r){return r.date.slice(0,7)===month;});
+  var chRows=ORGS.map(function(org){
+    return {org:org, s:sum(monList.filter(function(r){return r.org===org;}))};
+  }).filter(function(r){return r.s.tot>0;}).sort(function(a,b){return b.s.arr-a.s.arr;});
+  if(chRows.length){
+    h+='<div class="sec-title" style="margin-top:16px"><span class="dot blue"></span>'+month+' 各渠道拆分</div>'
+      +'<div class="table-wrap"><table><thead><tr>'
+      +'<th>渠道</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th></tr></thead><tbody>';
+    chRows.forEach(function(r){
+      h+='<tr><td>'+r.org+'</td><td>'+r.s.tot.toLocaleString()+'</td><td>'+r.s.val.toLocaleString()+'</td>'
+        +'<td>'+r.s.push.toLocaleString()+'</td><td>'+r.s.book.toLocaleString()+'</td>'
+        +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td>'+fmtPct(r.s.cvrt)+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }
+  document.getElementById('modalBody').innerHTML=h;
+  document.getElementById('mask').classList.add('show');
+  animateNumbers(document.getElementById('modalBody'));
+}
+
+/* ==================== 视图：固定资产 ==================== */
+var ASSETS_LS = 'wb_medicrm_assets_v1';
+var assets = [];
+var ASSET_MODELS = [
+  {model:'红米9A', qty:5},
+  {model:'红米note8', qty:21},
+  {model:'荣耀畅玩20', qty:1},
+  {model:'红米8', qty:3},
+  {model:'红米10A', qty:5},
+  {model:'红米Note13pro', qty:8},
+  {model:'红米13', qty:2},
+  {model:'红米13 5G', qty:2},
+  {model:'红米note13', qty:7},
+  {model:'红米note10A', qty:1}
+];
+
+function loadAssets(){
+  try{ assets = JSON.parse(localStorage.getItem(ASSETS_LS)) || []; }catch(e){ assets = []; }
+  if(!assets.length){
+    /* 首次加载：按型号清单生成55条资产明细 */
+    var id=1;
+    ASSET_MODELS.forEach(function(m){
+      for(var i=0;i<m.qty;i++){
+        assets.push({id:id, model:m.model, sn:'DY-SJ-'+('000'+id).slice(-3), status:'在用'});
+        id++;
+      }
+    });
+    saveAssets();
+  }
+}
+function saveAssets(){ localStorage.setItem(ASSETS_LS, JSON.stringify(assets)); }
+
+function assetKpi(label, value, cls){
+  return '<div class="kpi"><div class="label">'+label+'</div><div class="value '+cls+'">'+value+'</div></div>';
+}
+function renderAssets(){
+  var total=assets.length;
+  var active=assets.filter(function(a){return a.status==='在用';}).length;
+  var models={};
+  assets.forEach(function(a){ models[a.model]=(models[a.model]||0)+1; });
+  var modelCount=Object.keys(models).length;
+
+  var h='';
+  /* KPI 总览 */
+  h+='<div class="sec-title"><span class="dot"></span>资产总览 <span class="meta">手机类固定资产台账</span></div>'
+    +'<div class="kpi-grid">'
+    +assetKpi('资产总数', total.toLocaleString()+'<small>部</small>', 'c-blue')
+    +assetKpi('在用数量', active.toLocaleString()+'<small>部</small>', 'c-green')
+    +assetKpi('型号种类', modelCount.toLocaleString()+'<small>种</small>', 'c-orange')
+    +assetKpi('闲置/其他', (total-active).toLocaleString()+'<small>部</small>', 'c-dark')
+    +'</div>';
+
+  /* 按型号汇总 */
+  h+='<div class="sec-title"><span class="dot blue"></span>按型号汇总 <span class="meta">共 '+total+' 部手机 · 按数量排序</span></div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
+    +'<th>手机型号</th><th>数量</th><th>占比</th><th>资产编号范围</th>'
+    +'</tr></thead><tbody>';
+  var rows=Object.keys(models).map(function(k){return {model:k,qty:models[k]};})
+    .sort(function(a,b){return b.qty-a.qty;});
+  rows.forEach(function(r){
+    var ids=assets.filter(function(a){return a.model===r.model;}).map(function(a){return a.sn;}).sort();
+    var range=ids.length===1?ids[0]:ids[0]+' ~ '+ids[ids.length-1];
+    h+='<tr><td>'+r.model+'</td><td>'+r.qty+'</td><td>'+(r.qty/total*100).toFixed(1)+'%</td><td>'+range+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td>合计</td><td class="hl">'+total+'</td><td class="hl">100%</td><td>DY-SJ-001 ~ DY-SJ-'+('000'+total).slice(-3)+'</td></tr></tfoot></table></div></div>';
+
+  /* 录入区 */
+  h+='<div class="sec-title"><span class="dot"></span>资产录入 <span class="meta">批量新增手机</span></div>'
+    +'<div class="panel"><div class="form-grid" style="grid-template-columns:repeat(5,1fr)">'
+    +'<div class="field"><label>型号</label><input type="text" id="a_model" placeholder="如 红米note8" list="a_models"></div>'
+    +'<div class="field"><label>数量</label><input type="number" id="a_qty" min="1" value="1"></div>'
+    +'<div class="field"><label>状态</label><select id="a_status"><option>在用</option><option>闲置</option><option>报废</option></select></div>'
+    +'<div class="field"><label>备注/单价</label><input type="text" id="a_remark" placeholder="可选"></div>'
+    +'<div><button class="btn primary" style="width:100%" onclick="addAssets()">＋ 批量新增</button></div>'
+    +'</div>'
+    +'<datalist id="a_models">'+ASSET_MODELS.map(function(m){return '<option value="'+m.model+'">';}).join('')+'</datalist>'
+    +'<div class="toolbar" style="margin-bottom:0"><button class="btn danger" onclick="clearAssets()">清空全部资产</button></div></div>';
+
+  /* 明细列表 */
+  h+='<div class="sec-title"><span class="dot blue"></span>资产明细 <span class="meta">共 '+assets.length+' 条 · 显示前 100 条</span></div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
+    +'<th>资产编号</th><th>手机型号</th><th>状态</th><th>操作</th>'
+    +'</tr></thead><tbody id="assetTbody"></tbody></table></div></div>';
+
+  setView('固定资产', h);
+  renderAssetRows();
+}
+function renderAssetRows(){
+  var sorted=assets.slice().sort(function(a,b){return a.id-b.id;});
+  var h='';
+  sorted.slice(0,100).forEach(function(a){
+    h+='<tr><td>'+a.sn+'</td><td>'+a.model+'</td><td>'+a.status+'</td>'
+      +'<td><button class="btn danger" style="padding:4px 10px;min-height:30px" onclick="delAsset('+a.id+')">删除</button></td></tr>';
+  });
+  document.getElementById('assetTbody').innerHTML = h || '<tr><td colspan="4" class="empty">暂无资产</td></tr>';
+}
+function addAssets(){
+  var model=document.getElementById('a_model').value.trim();
+  var qty=Math.max(1, +document.getElementById('a_qty').value||1);
+  var status=document.getElementById('a_status').value;
+  if(!model){ alert('请输入手机型号'); return; }
+  var nextId=assets.reduce(function(m,a){return Math.max(m,a.id);},0)+1;
+  for(var i=0;i<qty;i++){
+    assets.push({id:nextId+i, model:model, sn:'DY-SJ-'+('000'+(nextId+i)).slice(-3), status:status});
+  }
+  saveAssets(); renderAssets();
+}
+function delAsset(id){
+  assets=assets.filter(function(a){return a.id!==id;});
+  saveAssets(); renderAssets();
+}
+function clearAssets(){
+  if(!confirm('确定清空全部资产吗？此操作不可恢复')) return;
+  assets=[]; saveAssets(); renderAssets();
+}
+
+/* ==================== 视图：盈亏分析 ==================== */
+var profitPeriod = 'mon'; // day | mon | year
+function setProfitPeriod(p){ profitPeriod=p; renderProfit(); }
+
+function fmtMoney(n){
+  return n.toLocaleString('zh-CN',{maximumFractionDigits:0});
+}
+function profitKpi(label, value, cls){
+  return '<div class="kpi"><div class="label">'+label+'</div><div class="value '+cls+'">'+value+'</div></div>';
+}
+
+function renderProfit(){
+  var ld=latestDate(), month=ld.slice(0,7), year=ld.slice(0,4);
+  var label, list;
+  var daysInMonth = new Date(+year, +month.slice(5,7), 0).getDate();
+  var staffCount = STAFF.length;
+  var perCost;
+  if(profitPeriod==='day'){
+    label='当日（'+ld+'）'; list=records.filter(function(r){return r.date===ld;});
+    perCost = 10000 / daysInMonth;
+  }else if(profitPeriod==='mon'){
+    label='当月（'+month+'）'; list=records.filter(function(r){return r.date.slice(0,7)===month;});
+    perCost = 10000;
+  }else{
+    label='年度（'+year+'）'; list=records.filter(function(r){return r.date.slice(0,4)===year;});
+    perCost = 120000;
+  }
+  var totalCost = perCost * staffCount;
+
+  function calc(arr){
+    var s = sum(arr);
+    var income = s.arr * 2150;
+    var cost = totalCost;        // 团队固定成本
+    var profit = income - cost;
+    return {
+      arr: s.arr,
+      income: income,
+      cost: cost,
+      profit: profit,
+      margin: income? profit/income*100 : (profit? -100 : 0),
+      perArr: staffCount? s.arr/staffCount : 0,
+      perIncome: staffCount? income/staffCount : 0,
+      perProfit: staffCount? profit/staffCount : 0
+    };
+  }
+
+  var T = calc(list);
+  var pbtn=function(p,n){ return '<button class="btn'+(profitPeriod===p?' primary':'')+'" onclick="setProfitPeriod(\''+p+'\')">'+n+'</button>'; };
+
+  var h='<div class="toolbar" style="margin:0 0 14px 0">'+pbtn('mon','当月')+pbtn('year','年度')+'</div>';
+
+  h+='<div class="sec-title"><span class="dot"></span>团队盈亏总览 <span class="meta">'+label+' · 收入=到诊×¥2150 · 成本='+staffCount+'人×¥'+fmtMoney(perCost)+'</span></div>'
+    +'<div class="kpi-grid">'
+    +profitKpi('到诊数', T.arr.toLocaleString()+'<small>人</small>', 'c-red')
+    +profitKpi('收入', '¥'+fmtMoney(T.income), 'c-blue')
+    +profitKpi('成本', '¥'+fmtMoney(T.cost), 'c-orange')
+    +profitKpi('人效', '¥'+fmtMoney(T.perProfit), T.profit>=0?'c-green':'c-red')
+    +'</div>';
+
+  h+='<div class="sec-title"><span class="dot blue"></span>客服盈亏明细 <span class="meta">按人效排序 · 人效=该客服利润</span></div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
+    +'<th>客服</th><th>到诊</th><th>收入</th><th>成本分摊</th><th>人效</th>'
+    +'</tr></thead><tbody>';
+
+  var rows=STAFF.map(function(st){
+    var r=calc(list.filter(function(r){return r.staff===st;}));
+    r.staff=st; return r;
+  }).sort(function(a,b){return b.perProfit-a.perProfit;});
+
+  rows.forEach(function(r){
+    var profCls = r.profit>=0?'hl':'';
+    h+='<tr><td>'+r.staff+'</td><td>'+r.arr+'</td><td>¥'+fmtMoney(r.income)+'</td>'
+      +'<td>¥'+fmtMoney(perCost)+'</td><td class="'+profCls+'">¥'+fmtMoney(r.perProfit)+'</td></tr>';
+  });
+
+  h+='</tbody><tfoot><tr><td>团队合计</td><td>'+T.arr+'</td><td>¥'+fmtMoney(T.income)+'</td>'
+    +'<td>¥'+fmtMoney(T.cost)+'</td><td class="hl">¥'+fmtMoney(T.perProfit)+'</td></tr></tfoot></table></div></div>';
+
+  setView('盈亏分析', h);
+}
+
+/* ==================== 视图：年度数据 ==================== */
+var yrMonth = '';   // 当前查看的月份（空=最新月）
+function setYrMonth(m){ yrMonth=m; renderYear(); }
+function renderYear(){
+  var ld=latestDate(), year=ld.slice(0,4);
+  var ylist=records.filter(function(r){return r.date.slice(0,4)===year;});
+  /* 有数据的月份（升序） */
+  var months=[]; ylist.forEach(function(r){ var m=r.date.slice(0,7); if(months.indexOf(m)<0) months.push(m); });
+  months.sort();
+  if(!yrMonth || months.indexOf(yrMonth)<0) yrMonth = months.length? months[months.length-1] : ld.slice(0,7);
+
+  var head='<th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th>';
+  var row=function(name,s,strong){
+    return '<tr><td>'+name+'</td><td>'+s.tot.toLocaleString()+'</td><td>'+s.val.toLocaleString()+'</td>'
+      +'<td>'+s.push.toLocaleString()+'</td><td>'+s.book.toLocaleString()+'</td>'
+      +'<td class="hl">'+s.arr.toLocaleString()+'</td><td>'+fmtPct(s.cvrt)+'</td></tr>';
+  };
+
+  /* ① 全年各月汇总 */
+  var h='<div class="sec-title"><span class="dot"></span>'+year+' 年各月汇总 <span class="meta">全部渠道合计</span></div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr><th>月份</th>'+head+'</tr></thead><tbody>';
+  months.forEach(function(m){
+    var s=sum(ylist.filter(function(r){return r.date.slice(0,7)===m;}));
+    h+=row(+m.slice(5,7)+' 月', s);
+  });
+  var Y=sum(ylist);
+  h+='</tbody><tfoot>'+row(year+' 全年合计', Y)+'</tfoot></table></div></div>';
+
+  /* ② 月份选项卡 + 当月各渠道明细 */
+  var mbtn=function(m){
+    return '<button class="btn'+(yrMonth===m?' primary':'')+'" onclick="setYrMonth(\''+m+'\')">'+ (+m.slice(5,7)) +'月</button>';
+  };
+  var monList=ylist.filter(function(r){return r.date.slice(0,7)===yrMonth;});
+  h+='<div class="sec-title"><span class="dot blue"></span>'+yrMonth+' 各渠道明细 <span class="meta">点击月份切换</span></div>'
+    +'<div class="toolbar" style="margin-top:0">'+months.map(function(m){return mbtn(m);}).join('')+'</div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr><th>渠道</th>'+head+'</tr></thead><tbody>';
+  ORGS.forEach(function(org){
+    var s=sum(monList.filter(function(r){return r.org===org;}));
+    h+=row(org, s);
+  });
+  var M=sum(monList);
+  h+='</tbody><tfoot>'+row(yrMonth+' 合计', M)+'</tfoot></table></div></div>';
+
+  /* ③ 全年各渠道汇总 */
+  h+='<div class="sec-title"><span class="dot"></span>'+year+' 全年各渠道汇总 <span class="meta">按到诊排序</span></div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr><th>渠道</th>'+head+'</tr></thead><tbody>';
+  var chRows=ORGS.map(function(org){
+    return {org:org, s:sum(ylist.filter(function(r){return r.org===org;}))};
+  }).sort(function(a,b){return b.s.arr-a.s.arr;});
+  chRows.forEach(function(r){ h+=row(r.org, r.s); });
+  h+='</tbody><tfoot>'+row(year+' 全年合计', Y)+'</tfoot></table></div></div>';
+
+  setView('年度数据', h);
+}
+
+/* ==================== 视图：客服数据 ==================== */
+function setCsPeriod(p){ csPeriod=p; renderCS(); }
+function renderCS(){
+  var ld=latestDate(), month=ld.slice(0,7), year=ld.slice(0,4);
+  var label, list;
+  if(csPeriod==='day'){ label='当日（'+ld+'）';    list=csRecords.filter(function(r){return r.date===ld;}); }
+  else if(csPeriod==='mon'){ label='当月（'+month+'）'; list=csRecords.filter(function(r){return r.date.slice(0,7)===month;}); }
+  else{ label='年度（'+year+'）'; list=csRecords.filter(function(r){return r.date.slice(0,4)===year;}); }
+
+  var btn=function(p,t){
+    return '<button class="btn'+(csPeriod===p?' primary':'')+'" onclick="setCsPeriod(\''+p+'\')">'+t+'</button>';
+  };
+  var h='<div class="toolbar" style="margin-top:0">'+btn('day','当日')+btn('mon','当月')+btn('year','年度')+'</div>';
+
+  /* 汇总表：4 客服 + 合计 */
+  h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服外呼汇总 <span class="meta">接通率=接通÷总数据 · 加微率=加微÷接通 · 有效率=有效÷加微</span></div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
+    +'<th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
+    +'</tr></thead><tbody>';
+  var rows=STAFF.map(function(st){
+    return {st:st, s:csSum(list.filter(function(r){return r.staff===st;}))};
+  }).sort(function(a,b){return b.s.val-a.s.val;});
+  rows.forEach(function(r){
+    h+='<tr><td>'+r.st+'</td><td>'+r.s.tot.toLocaleString()+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
+      +'<td class="hl">'+fmtPct(r.s.jtr)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
+      +'<td>'+r.s.val.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.vr)+'</td></tr>';
+  });
+  var T=csSum(list);
+  h+='</tbody><tfoot><tr><td>合计</td><td>'+T.tot.toLocaleString()+'</td><td>'+T.jt.toLocaleString()+'</td>'
+    +'<td class="hl">'+fmtPct(T.jtr)+'</td><td>'+T.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(T.jwr)+'</td>'
+    +'<td>'+T.val.toLocaleString()+'</td><td class="hl">'+fmtPct(T.vr)+'</td></tr></tfoot></table></div></div>';
+
+  /* 分渠道查看：某渠道下 4 位客服的完整数据 */
+  var cbtn=function(org){
+    return '<button class="btn'+(csChannel===org?' primary':'')+'" onclick="setCsChannel(\''+org+'\')">'+org+'</button>';
+  };
+  var chList=list.filter(function(r){return r.org===csChannel;});
+  h+='<div class="sec-title"><span class="dot"></span>'+label+' 分渠道客服数据 <span class="meta">当前渠道：'+csChannel+'</span></div>'
+    +'<div class="toolbar" style="margin-top:0">'+ORGS.map(function(o){return cbtn(o);}).join('')+'</div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
+    +'<th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
+    +'</tr></thead><tbody>';
+  var chRows=STAFF.map(function(st){
+    return {st:st, s:csSum(chList.filter(function(r){return r.staff===st;}))};
+  }).sort(function(a,b){return b.s.val-a.s.val;});
+  chRows.forEach(function(r){
+    h+='<tr><td>'+r.st+'</td><td>'+r.s.tot.toLocaleString()+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
+      +'<td class="hl">'+fmtPct(r.s.jtr)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
+      +'<td>'+r.s.val.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.vr)+'</td></tr>';
+  });
+  var CT=csSum(chList);
+  h+='</tbody><tfoot><tr><td>'+csChannel+' 合计</td><td>'+CT.tot.toLocaleString()+'</td><td>'+CT.jt.toLocaleString()+'</td>'
+    +'<td class="hl">'+fmtPct(CT.jtr)+'</td><td>'+CT.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.jwr)+'</td>'
+    +'<td>'+CT.val.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.vr)+'</td></tr></tfoot></table></div></div>';
+
+  /* 录入 */
+  h+='<div class="sec-title"><span class="dot blue"></span>录入客服数据</div>'
+    +'<div class="panel"><div class="form-grid">'
+    + field('日期','<input type="date" id="c_date" value="'+ld+'">')
+    + field('渠道','<select id="c_org">'+ORGS.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>')
+    + field('客服','<select id="c_staff">'+STAFF.map(function(s){return '<option>'+s+'</option>';}).join('')+'</select>')
+    + field('总数据量','<input type="number" id="c_tot" min="0" placeholder="如 55">')
+    + field('接通量','<input type="number" id="c_jt" min="0" placeholder="如 34">')
+    + field('加微量','<input type="number" id="c_jw" min="0" placeholder="如 18">')
+    + field('有效量','<input type="number" id="c_val" min="0" placeholder="如 13">')
+    +'</div>'
+    +'<div class="toolbar"><button class="btn primary" onclick="addCs()">＋ 保存记录</button>'
+    +'<button class="btn danger" onclick="clearCs()">清空客服数据</button></div>'
+    +'<div style="font-size:12px;color:var(--txt2)">同一「日期+渠道+客服」重复保存会覆盖旧记录。</div></div>';
+
+  /* 明细列表 */
+  h+='<div class="sec-title"><span class="dot blue"></span>数据明细 <span class="meta">共 '+csRecords.length+' 条</span></div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
+    +'<th>日期</th><th>渠道</th><th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th><th>操作</th>'
+    +'</tr></thead><tbody id="csTbody"></tbody></table></div></div>';
+
+  setView('客服数据', h);
+  renderCsRows();
+}
+function setCsChannel(org){ csChannel=org; renderCS(); }
+function renderCsRows(){
+  var sorted=csRecords.slice().sort(function(a,b){ return b.date<a.date?-1:1; });
+  var h='';
+  sorted.slice(0,200).forEach(function(r){
+    var s=csSum([r]);
+    h+='<tr><td>'+r.date+'</td><td>'+(r.org||'-')+'</td><td>'+r.staff+'</td><td>'+r.tot+'</td><td>'+r.jt+'</td>'
+      +'<td>'+fmtPct(s.jtr)+'</td><td>'+r.jw+'</td><td>'+fmtPct(s.jwr)+'</td><td>'+r.val+'</td><td>'+fmtPct(s.vr)+'</td>'
+      +'<td><button class="btn danger" style="padding:4px 10px;min-height:30px" onclick="delCs('+r.id+')">删除</button></td></tr>';
+  });
+  document.getElementById('csTbody').innerHTML = h || '<tr><td colspan="11" class="empty">暂无数据，请先录入</td></tr>';
+}
+function addCs(){
+  var g=function(id){return document.getElementById(id).value;};
+  var date=g('c_date'), org=g('c_org'), staff=g('c_staff');
+  var tot=+g('c_tot')||0, jt=+g('c_jt')||0, jw=+g('c_jw')||0, val=+g('c_val')||0;
+  if(!date){ alert('请选择日期'); return; }
+  if(tot+jt+jw+val===0){ alert('请至少填写一项数据'); return; }
+  var exist=csRecords.find(function(r){return r.date===date && r.org===org && r.staff===staff;});
+  if(exist){ exist.tot=tot; exist.jt=jt; exist.jw=jw; exist.val=val; }
+  else{
+    var nid=csRecords.reduce(function(m,r){return Math.max(m,r.id);},0)+1;
+    csRecords.push({id:nid,date:date,org:org,staff:staff,tot:tot,jt:jt,jw:jw,val:val});
+  }
+  saveCs(); renderCS();
+}
+function delCs(id){
+  csRecords=csRecords.filter(function(r){return r.id!==id;});
+  saveCs(); renderCsRows();
+}
+function clearCs(){
+  if(!confirm('⚠️ 将删除全部 '+csRecords.length+' 条客服数据，此操作不可恢复！确定继续吗？'))return;
+  csRecords=[]; saveCs(); renderCS();
+}
+
+/* ==================== 导入导出 ==================== */
+function exportJSON(){
+  var blob=new Blob([JSON.stringify({records:records, cs:csRecords},null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='DY-CRM数据_'+todayStr()+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importJSON(ev){
+  var f=ev.target.files[0]; if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var data=JSON.parse(rd.result);
+      var arr = Array.isArray(data)? data : (data.records||[]);
+      var cs  = Array.isArray(data)? []   : (data.cs||[]);
+      arr=arr.filter(function(r){return r.date&&r.org;}).map(function(r,i){
+        return {id:i+1,date:r.date,org:r.org,staff:r.staff||'',tot:+r.tot||0,val:+r.val||0,push:+r.push||0,book:+r.book||0,arr:+r.arr||0};
+      });
+      cs=cs.filter(function(r){return r.date&&r.staff;}).map(function(r,i){
+        return {id:i+1,date:r.date,staff:r.staff,org:r.org||'',tot:+r.tot||0,jt:+r.jt||0,jw:+r.jw||0,val:+r.val||0};
+      });
+      if(!arr.length && !cs.length) throw 0;
+      if(arr.length){ records=arr; saveData(); }
+      if(cs.length){ csRecords=cs; saveCs(); }
+      route();
+      alert('导入成功：漏斗数据 '+arr.length+' 条，客服数据 '+cs.length+' 条');
+    }catch(e){ alert('文件格式不正确，导入失败'); }
+  };
+  rd.readAsText(f); ev.target.value='';
+}
+function exportCSV(){
+  var head='日期,渠道,客服,总数据,有效,推进,预约,到诊\n';
+  var body=records.map(function(r){return [r.date,r.org,r.staff||'',r.tot,r.val,r.push,r.book,r.arr].join(',');}).join('\n');
+  var blob=new Blob(['﻿'+head+body],{type:'text/csv'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='DY-CRM数据_'+todayStr()+'.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ==================== 路由/导航 ==================== */
+var NAV=[
+  {id:'dash',  name:'仪表盘',  icon:'M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z'},
+  {id:'cs',    name:'客服数据',icon:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10Z'},
+  {id:'rank',  name:'龙虎榜单',icon:'M8 21h8m-4-4v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4a1 1 0 0 0-1 1c0 2.2 1.8 4 4 4m10-6h3a1 1 0 0 1 1 1c0 2.2-1.8 4-4 4'},
+  {id:'year',  name:'年度数据',icon:'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z'},
+  {id:'ops',   name:'固定资产',icon:'M3 3v18h18M7 15l4-6 4 3 5-8'},
+  {id:'ana',   name:'盈亏分析',icon:'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7'},
+  {id:'acct',  name:'账号管理',icon:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m12-14a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z'}
+];
+var cur='dash';
+function buildNav(){
+  var html=NAV.map(function(n){
+    return '<div class="nav-item'+(n.id===cur?' active':'')+'" data-id="'+n.id+'" onclick="go(\''+n.id+'\')">'
+      +'<svg viewBox="0 0 24 24" fill="none"><path d="'+n.icon+'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      +n.name+'</div>';
+  }).join('');
+  html+='<div class="nav-item nav-logout" onclick="if(confirm(\'确定退出登录吗？\'))alert(\'演示环境，无需真正退出\')"><svg viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>退出登录</div>';
+  document.getElementById('sideNav').innerHTML=html;
+  document.getElementById('mobileNav').innerHTML=html;
+}
+function go(id){ cur=id; route(); }
+function route(){
+  buildNav(); closeModal();
+  if(cur==='dash') renderDashboard();
+  else if(cur==='rank') renderRank();
+  else if(cur==='cs') renderCS();
+  else if(cur==='year') renderYear();
+  else if(cur==='ops') renderAssets();
+  else if(cur==='ana') renderProfit();
+  else{
+    var n=NAV.find(function(x){return x.id===cur;});
+    setView(n.name,'<div class="panel"><div class="placeholder"><b>「'+n.name+'」模块建设中</b>已交付仪表盘 / 数据管理 / 龙虎榜 / 客服数据 / 年度数据 / 固定资产 / 盈亏分析六大模块，此模块将在下个迭代追加。</div></div>');
+  }
+}
+function setView(title,html){
+  document.getElementById('pageTitle').textContent=title;
+  document.getElementById('content').innerHTML=html;
+  window.scrollTo(0,0);
+  animateNumbers(document.getElementById('content'));
+}
+
+/* ==================== 数字滚动增长动画 ==================== */
+function parseNum(str){
+  var m=str.match(/^([^\d\-]*)(-?[\d.,]+)(.*)$/);
+  if(!m || m[2]==='') return null;
+  var dec=(m[2].split('.')[1]||'').length;
+  return {prefix:m[1], val:parseFloat(m[2].replace(/,/g,'')), suffix:m[3], dec:dec};
+}
+function fmtN(v,dec){
+  return v.toLocaleString('zh-CN',{minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+function countUp(span,dur){
+  var info=parseNum(span.dataset.target);
+  if(!info || isNaN(info.val)) return;
+  var start=null;
+  function frame(ts){
+    if(start===null) start=ts;
+    var p=Math.min((ts-start)/dur,1);
+    var e=1-Math.pow(1-p,3);   // easeOutCubic 缓动
+    var cur=info.val*e;
+    span.textContent=info.prefix + fmtN(cur, info.dec) + info.suffix;
+    if(p<1) requestAnimationFrame(frame);
+    else span.textContent=info.prefix + fmtN(info.val, info.dec) + info.suffix;
+  }
+  requestAnimationFrame(frame);
+}
+function animateNumbers(root){
+  if(!root) return;
+  var dur=850;
+  /* KPI 卡片：数字可能含 <small> 单位，保留包裹 */
+  root.querySelectorAll('.kpi .value').forEach(function(el){
+    var m=el.innerHTML.match(/(-?[\d,]+(\.\d+)?)/);
+    if(!m) return;
+    var pre=el.innerHTML.slice(0,m.index);
+    var num=m[0];
+    var post=el.innerHTML.slice(m.index+num.length);
+    el.innerHTML=pre+'<span class="cnt" data-target="'+num+'">'+num+'</span>'+post;
+  });
+  /* 龙虎榜数字 */
+  root.querySelectorAll('.rank-num').forEach(function(el){
+    var txt=el.childNodes[0];
+    if(txt && txt.nodeType===3){
+      var t=txt.textContent.trim();
+      if(/^¥?-?[\d,]+(\.\d+)?(人|%)?$/.test(t)){
+        var sp=document.createElement('span');
+        sp.className='cnt'; sp.dataset.target=t; sp.textContent=t;
+        el.replaceChild(sp, txt);
+      }
+    }
+  });
+  /* 表格单元格：纯数字 / ¥ / % / 人 */
+  root.querySelectorAll('td').forEach(function(td){
+    var t=td.textContent.trim();
+    if(/^¥?-?[\d,]+(\.\d+)?(人|%)?$/.test(t)){
+      td.innerHTML='<span class="cnt" data-target="'+t+'">'+t+'</span>';
+    }
+  });
+  root.querySelectorAll('span.cnt').forEach(function(s){ countUp(s,dur); });
+}
+
+/* 时钟 */
+function tick(){
+  var d=new Date(), p=function(n){return ('0'+n).slice(-2);};
+  var wk=['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+  document.getElementById('clock').textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+wk+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+}
+setInterval(tick,1000); tick();
+
+loadData(); loadCs(); loadAssets(); route(); pullCloud();
+
+/* PWA：注册 Service Worker（仅在 http/https 下，file:// 直接跳过） */
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(e){ /* 忽略注册失败 */ });
+  });
+}
+</script>
+</body>
+</html>
