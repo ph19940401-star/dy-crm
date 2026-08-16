@@ -1293,8 +1293,10 @@ function setView(title,html){
   var sameTitle = document.getElementById('pageTitle').textContent === title;
   document.getElementById('pageTitle').textContent=title;
   document.getElementById('content').innerHTML=html;
-  if(!sameTitle) window.scrollTo(0,0);
-  animateNumbers(document.getElementById('content'));
+  if(!sameTitle){
+    window.scrollTo(0,0);
+    animateNumbers(document.getElementById('content'));
+  }
 }
 
 /* ==================== 数字滚动增长动画 ==================== */
