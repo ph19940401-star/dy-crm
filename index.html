@@ -1069,7 +1069,7 @@ function renderYear(){
   var staffs=STAFF_ALL.slice();  // 固定：标准4客服（已剔除未填/填错的脏数据）
   var MLAB=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
   var MKEY=['01','02','03','04','05','06','07','08','09','10','11','12'];
-  var ysmBtn=function(m,t){ return '<button class="btn'+(yrStaffMetric===m?' primary':'')+'" onclick="setYrStaffMetric(\''+m+'\')">'+t+'</button>'; };
+  var ysmBtn=function(m,t){ return '<button type="button" class="btn'+(yrStaffMetric===m?' primary':'')+'" onclick="setYrStaffMetric(\''+m+'\')">'+t+'</button>'; };
   h+='<div class="sec-title"><span class="dot"></span>各客服月度漏斗 <span class="meta">按指标查看 · 点击切换</span></div>'
     +'<div class="toolbar" style="margin-top:0">'+ysmBtn('tot','总数据')+ysmBtn('val','有效')+ysmBtn('push','推进')+ysmBtn('book','预约')+ysmBtn('arr','到诊')+'</div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr><th>客服</th>'
@@ -1290,9 +1290,10 @@ function route(){
   }
 }
 function setView(title,html){
+  var sameTitle = document.getElementById('pageTitle').textContent === title;
   document.getElementById('pageTitle').textContent=title;
   document.getElementById('content').innerHTML=html;
-  window.scrollTo(0,0);
+  if(!sameTitle) window.scrollTo(0,0);
   animateNumbers(document.getElementById('content'));
 }
 
