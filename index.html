@@ -248,11 +248,11 @@ var LS_OLD1 = 'wb_medicrm_records_v1';
 var ORGS = ['天雄星','天立星','福州博润','天机星','金牛-黄V团队','天损星'];
 var STAFF = ['陈敏','张语欣','齐雪莹','李林'];
 var STAFF_W = {'陈敏':.30,'张语欣':.27,'齐雪莹':.23,'李林':.20};
-/* 客服名规范化：属于标准4人的照用，其余脏值（未知/孙洋等）归并为「未分配」兜底，保证总数不丢 */
-function normStaff(s){ s=(s==null?'':String(s)).trim(); return STAFF.indexOf(s)>=0 ? s : '未分配'; }
-var STAFF_ALL = STAFF.concat(['未分配']);
-function normRecords(list){ return (list||[]).map(function(r){ return Object.assign({}, r, {staff: normStaff(r.staff)}); }); }
-function normCsList(list){ return (list||[]).map(function(r){ return Object.assign({}, r, {staff: normStaff(r.staff)}); }); }
+/* 客服名规范化：只保留标准4客服（陈敏/张语欣/齐雪莹/李林）的数据；其余脏值（未知/孙洋等）直接剔除，不计入任何统计 */
+function normStaff(s){ s=(s==null?'':String(s)).trim(); return STAFF.indexOf(s)>=0 ? s : null; }
+var STAFF_ALL = STAFF;
+function normRecords(list){ return (list||[]).filter(function(r){ return normStaff(r.staff)!==null; }).map(function(r){ return Object.assign({}, r, {staff: normStaff(r.staff)}); }); }
+function normCsList(list){ return (list||[]).filter(function(r){ return normStaff(r.staff)!==null; }).map(function(r){ return Object.assign({}, r, {staff: normStaff(r.staff)}); }); }
 /* 旧数据城市名 → 新渠道名 映射 */
 var RENAME = {'哈尔滨':'天雄星','南京':'天立星','郑州':'福州博润','贵阳':'天机星','昆明':'金牛-黄V团队','成都':'天损星'};
 var records = [];
@@ -1066,7 +1066,7 @@ function renderYear(){
   h+='</tbody><tfoot>'+row(year+' 全年合计', Y)+'</tfoot></table></div></div>';
 
   /* ④ 各客服月度漏斗矩阵（按指标切换） */
-  var staffs=STAFF_ALL.slice();  // 固定：标准4客服 + 未分配（兜底脏数据，保证总数不丢）
+  var staffs=STAFF_ALL.slice();  // 固定：标准4客服（已剔除未填/填错的脏数据）
   var MLAB=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
   var MKEY=['01','02','03','04','05','06','07','08','09','10','11','12'];
   var ysmBtn=function(m,t){ return '<button class="btn'+(yrStaffMetric===m?' primary':'')+'" onclick="setYrStaffMetric(\''+m+'\')">'+t+'</button>'; };
