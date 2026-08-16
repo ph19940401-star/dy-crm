@@ -1,4 +1,4 @@
-const CACHE = 'dy-crm-v1';
+const CACHE = 'dy-crm-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -34,17 +34,36 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(e.request).then(function (cached) {
-      if (cached) return cached;
-      return fetch(e.request).then(function (resp) {
-        if (resp && resp.status === 200 && resp.type === 'basic') {
+  var req = e.request;
+
+  // 页面（导航请求）：network-first，永远拿到最新版；网络失败才降级缓存
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req).then(function (resp) {
+        if (resp && resp.status === 200) {
           var copy = resp.clone();
-          caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+          caches.open(CACHE).then(function (c) { c.put('./index.html', copy); });
         }
         return resp;
       }).catch(function () {
         return caches.match('./index.html');
+      })
+    );
+    return;
+  }
+
+  // 其他静态资源：cache-first
+  e.respondWith(
+    caches.match(req).then(function (cached) {
+      if (cached) return cached;
+      return fetch(req).then(function (resp) {
+        if (resp && resp.status === 200 && resp.type === 'basic') {
+          var copy = resp.clone();
+          caches.open(CACHE).then(function (c) { c.put(req, copy); });
+        }
+        return resp;
+      }).catch(function () {
+        return caches.match('./');
       });
     })
   );
