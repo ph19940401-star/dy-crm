@@ -1007,6 +1007,8 @@ function renderProfit(){
 /* ==================== 视图：年度数据 ==================== */
 var yrMonth = '';   // 当前查看的月份（空=最新月）
 function setYrMonth(m){ yrMonth=m; renderYear(); }
+var yrStaffMetric = 'tot';   // 各客服月度矩阵当前指标
+function setYrStaffMetric(m){ yrStaffMetric=m; renderYear(); }
 function renderYear(){
   var ld=latestDate(), year=ld.slice(0,4);
   var ylist=records.filter(function(r){return r.date.slice(0,4)===year;});
@@ -1054,6 +1056,38 @@ function renderYear(){
     return {org:org, s:sum(ylist.filter(function(r){return r.org===org;}))};
   }).sort(function(a,b){return b.s.arr-a.s.arr;});
   chRows.forEach(function(r){ h+=row(r.org, r.s); });
+  h+='</tbody><tfoot>'+row(year+' 全年合计', Y)+'</tfoot></table></div></div>';
+
+  /* ④ 各客服月度漏斗矩阵（按指标切换） */
+  var staffs=[]; ylist.forEach(function(r){ if(staffs.indexOf(r.staff)<0) staffs.push(r.staff); });
+  staffs.sort(function(a,b){ return sum(ylist.filter(function(r){return r.staff===b;})).tot - sum(ylist.filter(function(r){return r.staff===a;})).tot; });
+  var MLAB=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  var MKEY=['01','02','03','04','05','06','07','08','09','10','11','12'];
+  var ysmBtn=function(m,t){ return '<button class="btn'+(yrStaffMetric===m?' primary':'')+'" onclick="setYrStaffMetric(\''+m+'\')">'+t+'</button>'; };
+  h+='<div class="sec-title"><span class="dot"></span>各客服月度漏斗 <span class="meta">按指标查看 · 点击切换</span></div>'
+    +'<div class="toolbar" style="margin-top:0">'+ysmBtn('tot','总数据')+ysmBtn('val','有效')+ysmBtn('push','推进')+ysmBtn('book','预约')+ysmBtn('arr','到诊')+'</div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr><th>客服</th>'
+    +MLAB.map(function(t){return '<th>'+t+'</th>';}).join('')+'<th class="hl">全年</th></tr></thead><tbody>';
+  staffs.forEach(function(st){
+    h+='<tr><td>'+st+'</td>';
+    MKEY.forEach(function(mk){
+      var s=sum(ylist.filter(function(r){return r.staff===st && r.date.slice(0,7)===year+'-'+mk;}));
+      h+='<td>'+s[yrStaffMetric].toLocaleString()+'</td>';
+    });
+    var sy=sum(ylist.filter(function(r){return r.staff===st;}));
+    h+='<td class="hl">'+sy[yrStaffMetric].toLocaleString()+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td>合计</td>';
+  MKEY.forEach(function(mk){
+    var s=sum(ylist.filter(function(r){return r.date.slice(0,7)===year+'-'+mk;}));
+    h+='<td>'+s[yrStaffMetric].toLocaleString()+'</td>';
+  });
+  h+='<td class="hl">'+Y[yrStaffMetric].toLocaleString()+'</td></tr></tfoot></table></div></div>';
+
+  /* ⑤ 各客服全年漏斗明细 */
+  h+='<div class="sec-title"><span class="dot blue"></span>各客服全年漏斗明细 <span class="meta">总数据→有效→推进→预约→到诊</span></div>'
+    +'<div class="panel"><div class="table-wrap"><table><thead><tr><th>客服</th>'+head+'</tr></thead><tbody>';
+  staffs.forEach(function(st){ h+=row(st, sum(ylist.filter(function(r){return r.staff===st;}))); });
   h+='</tbody><tfoot>'+row(year+' 全年合计', Y)+'</tfoot></table></div></div>';
 
   setView('年度数据', h);
