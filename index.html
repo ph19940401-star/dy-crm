@@ -217,7 +217,7 @@
         <div class="title" id="pageTitle">仪表盘</div>
       </div>
       <div class="spacer"></div>
-      <button class="btn refresh-btn" onclick="pullCloud()">↻ 刷新</button>
+      <button class="btn refresh-btn" onclick="updateApp()">↻ 更新</button>
       <button class="btn" onclick="exportJSON()">导出 JSON</button>
       <button class="btn" onclick="document.getElementById('importFile').click()">导入恢复</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
@@ -1369,6 +1369,17 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       });
     }).catch(function(e){ /* 忽略注册失败 */ });
   });
+}
+
+/* 一键更新应用：清空 SW 缓存后强制从网络重载页面，彻底绕过 PWA 顽固缓存 */
+function updateApp(){
+  try{
+    if ('caches' in window) {
+      caches.keys().then(function(ks){
+        return Promise.all(ks.map(function(k){ return caches.delete(k); }));
+      }).then(function(){ location.reload(); }).catch(function(){ location.reload(); });
+    } else { location.reload(); }
+  }catch(e){ location.reload(); }
 }
 </script>
 </body>
