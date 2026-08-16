@@ -1362,7 +1362,12 @@ loadData(); loadCs(); loadAssets(); route(); pullCloud();
 /* PWA：注册 Service Worker（仅在 http/https 下，file:// 直接跳过） */
 if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js').catch(function(e){ /* 忽略注册失败 */ });
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      // 新版本接管后自动刷新一次，确保拿到最新页面（防抖避免循环）
+      navigator.serviceWorker.addEventListener('controllerchange', function(){
+        if (!window.__crmReloaded) { window.__crmReloaded = true; location.reload(); }
+      });
+    }).catch(function(e){ /* 忽略注册失败 */ });
   });
 }
 </script>
