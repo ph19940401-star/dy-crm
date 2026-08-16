@@ -248,6 +248,11 @@ var LS_OLD1 = 'wb_medicrm_records_v1';
 var ORGS = ['天雄星','天立星','福州博润','天机星','金牛-黄V团队','天损星'];
 var STAFF = ['陈敏','张语欣','齐雪莹','李林'];
 var STAFF_W = {'陈敏':.30,'张语欣':.27,'齐雪莹':.23,'李林':.20};
+/* 客服名规范化：属于标准4人的照用，其余脏值（未知/孙洋等）归并为「未分配」兜底，保证总数不丢 */
+function normStaff(s){ s=(s==null?'':String(s)).trim(); return STAFF.indexOf(s)>=0 ? s : '未分配'; }
+var STAFF_ALL = STAFF.concat(['未分配']);
+function normRecords(list){ return (list||[]).map(function(r){ return Object.assign({}, r, {staff: normStaff(r.staff)}); }); }
+function normCsList(list){ return (list||[]).map(function(r){ return Object.assign({}, r, {staff: normStaff(r.staff)}); }); }
 /* 旧数据城市名 → 新渠道名 映射 */
 var RENAME = {'哈尔滨':'天雄星','南京':'天立星','郑州':'福州博润','贵阳':'天机星','昆明':'金牛-黄V团队','成都':'天损星'};
 var records = [];
@@ -309,6 +314,7 @@ function loadData(){
     }catch(e){}
   }
   if(!records.length){ records = (typeof SEED_RECORDS!=='undefined' && SEED_RECORDS.length) ? SEED_RECORDS.map(function(r,i){ r.id=i+1; return r; }) : makeSample(); }
+  records = normRecords(records);
   saveData();
 }
 
@@ -322,11 +328,11 @@ async function pullCloud(){
     var d = await res.json();
     var changed = false;
     if(d.records && d.records.length){
-      records = d.records.map(function(r,i){ r.id=i+1; return r; });
+      records = normRecords(d.records.map(function(r,i){ r.id=i+1; return r; }));
       saveData(); changed = true;
     }
     if(d.cs && d.cs.length){
-      csRecords = d.cs.map(function(r,i){ r.id=i+1; return r; });
+      csRecords = normCsList(d.cs.map(function(r,i){ r.id=i+1; return r; }));
       saveCs(); changed = true;
     }
     if(changed){ route(); }
@@ -427,6 +433,7 @@ function loadCs(){
     }catch(e){}
   }
   if(!csRecords.length){ csRecords = (typeof SEED_CS!=='undefined' && SEED_CS.length) ? SEED_CS.map(function(r,i){ r.id=i+1; return r; }) : makeCsSample(); }
+  csRecords = normCsList(csRecords);
   saveCs();
 }
 function saveCs(){ localStorage.setItem(CS_LS, JSON.stringify(csRecords)); }
@@ -750,7 +757,7 @@ function clearAll(){
 function renderRank(){
   var ld=latestDate(), month=ld.slice(0,7);
   var list=records.filter(function(r){return r.date.slice(0,7)===month;});
-  var rows=STAFF.map(function(st){
+  var rows=STAFF_ALL.map(function(st){
     var s=sum(list.filter(function(r){return r.staff===st;}));
     return {org:st,s:s};
   }).sort(function(a,b){return b.s.arr-a.s.arr;});
@@ -1059,8 +1066,7 @@ function renderYear(){
   h+='</tbody><tfoot>'+row(year+' 全年合计', Y)+'</tfoot></table></div></div>';
 
   /* ④ 各客服月度漏斗矩阵（按指标切换） */
-  var staffs=[]; ylist.forEach(function(r){ if(staffs.indexOf(r.staff)<0) staffs.push(r.staff); });
-  staffs.sort(function(a,b){ return sum(ylist.filter(function(r){return r.staff===b;})).tot - sum(ylist.filter(function(r){return r.staff===a;})).tot; });
+  var staffs=STAFF_ALL.slice();  // 固定：标准4客服 + 未分配（兜底脏数据，保证总数不丢）
   var MLAB=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
   var MKEY=['01','02','03','04','05','06','07','08','09','10','11','12'];
   var ysmBtn=function(m,t){ return '<button class="btn'+(yrStaffMetric===m?' primary':'')+'" onclick="setYrStaffMetric(\''+m+'\')">'+t+'</button>'; };
@@ -1112,7 +1118,7 @@ function renderCS(){
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
     +'<th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
     +'</tr></thead><tbody>';
-  var rows=STAFF.map(function(st){
+  var rows=STAFF_ALL.map(function(st){
     return {st:st, s:csSum(list.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
   rows.forEach(function(r){
@@ -1135,7 +1141,7 @@ function renderCS(){
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
     +'<th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
     +'</tr></thead><tbody>';
-  var chRows=STAFF.map(function(st){
+  var chRows=STAFF_ALL.map(function(st){
     return {st:st, s:csSum(chList.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
   chRows.forEach(function(r){
