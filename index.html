@@ -345,7 +345,7 @@ function saveData(){ localStorage.setItem(LS_KEY, JSON.stringify(records)); }
 /* 伪随机（稳定可复现） */
 function seeded(s){ return function(){ s=(s*9301+49297)%233280; return s/233280; }; }
 
-/* 示例数据：6 个渠道 × 2026年1-8月，漏斗：有效→推进→预约→到诊（总数据暂不统计） */
+/* 示例数据：6 个渠道 × 2026年1-8月，漏斗：总数据→有效→推进→预约→到诊 */
 
 
 
@@ -464,8 +464,7 @@ function makeCsSample(){
 function csSum(list){
   var s={tot:0,jt:0,jw:0,val:0};
   list.forEach(function(r){ s.tot+=r.tot; s.jt+=r.jt; s.jw+=r.jw; s.val+=r.val; });
-  s.jtr = s.tot? s.jt/s.tot*100 : 0;   // 总数据接通率（暂不统计）
-  s.jtr_val = s.val? s.jt/s.val*100 : 0; // 有效接通率 = 接通 ÷ 有效
+  s.jtr = s.tot? s.jt/s.tot*100 : 0;   // 接通率 = 接通 ÷ 总数据
   s.jwr = s.jt?  s.jw/s.jt*100  : 0;   // 加微率 = 加微 ÷ 接通
   s.vr  = s.jw?  s.val/s.jw*100 : 0;   // 有效率 = 有效 ÷ 加微
   return s;
@@ -483,8 +482,7 @@ function todayStr(){
 function sum(list){
   var s={tot:0,val:0,push:0,book:0,arr:0};
   list.forEach(function(r){ s.tot+=r.tot; s.val+=r.val; s.push+=r.push; s.book+=r.book; s.arr+=r.arr; });
-  s.cvrt = s.tot? s.arr/s.tot*100 : 0;    // 总转化 = 到诊 ÷ 总数据（总数据暂不统计）
-  s.eff  = s.val? s.arr/s.val*100 : 0;    // 有效转化 = 到诊 ÷ 有效
+  s.cvrt = s.tot? s.arr/s.tot*100 : 0;    // 总转化 = 到诊 ÷ 总数据
   return s;
 }
 function fmtPct(n){ return n.toFixed(2)+'%'; }
@@ -534,23 +532,23 @@ function renderDashboard(){
   /* 当日汇总 */
   html += '<div class="sec-title"><span class="dot"></span>当日汇总 <span class="meta">'+ld+'（最新数据日）· 点击卡片查看各渠道明细</span></div>';
   html += '<div class="kpi-grid">'
-    + kpi('总数据', '—',                     'c-blue',  'day','tot')
+    + kpi('总数据', D.tot.toLocaleString(), 'c-blue',  'day','tot')
     + kpi('有效',   D.val.toLocaleString(), 'c-dark',  'day','val')
     + kpi('推进',   D.push.toLocaleString(),'c-orange','day','push')
     + kpi('预约',   D.book.toLocaleString(),'c-teal',  'day','book')
     + kpi('到诊',   D.arr+'<small>人</small>','c-red', 'day','arr')
-    + kpi('有效转化', fmtPct(D.eff),        'c-green', 'day','eff')
+    + kpi('总转化', fmtPct(D.cvrt),         'c-green', 'day','cvrt')
     + '</div>';
 
   /* 当月汇总 */
   html += '<div class="sec-title"><span class="dot blue"></span>当月汇总 <span class="meta">'+month+' · 已统计 '+daysInMonth+' 天</span></div>';
   html += '<div class="kpi-grid">'
-    + kpi('月总数据', '—',                      'c-blue',  'mon','tot')
+    + kpi('月总数据', M.tot.toLocaleString(),  'c-blue',  'mon','tot')
     + kpi('月有效',   M.val.toLocaleString(),  'c-dark',  'mon','val')
     + kpi('月推进',   M.push.toLocaleString(), 'c-orange','mon','push')
     + kpi('月预约',   M.book.toLocaleString(), 'c-teal',  'mon','book')
     + kpi('月到诊',   M.arr.toLocaleString()+'<small>人</small>','c-red','mon','arr')
-    + kpi('月有效转化', fmtPct(M.eff),          'c-green', 'mon','eff')
+    + kpi('月总转化', fmtPct(M.cvrt),          'c-green', 'mon','cvrt')
     + '</div>';
 
   /* 图表行 */
@@ -644,7 +642,6 @@ var METRICS = {
   book:{name:'预约',   get:function(s){return s.book;}, fmt:function(s){return s.book.toLocaleString();}},
   arr: {name:'到诊',   get:function(s){return s.arr;},  fmt:function(s){return s.arr.toLocaleString();}},
   cvrt:{name:'总转化', get:function(s){return s.cvrt;}, fmt:function(s){return fmtPct(s.cvrt);}},
-  eff: {name:'有效转化', get:function(s){return s.eff;}, fmt:function(s){return fmtPct(s.eff);}}
 };
 function openDetail(scope, metric, label){
   var ld=latestDate(), month=ld.slice(0,7);
@@ -661,24 +658,24 @@ function openDetail(scope, metric, label){
     (scope==='day'? ld+' · 日' : month+' · 月') + m.name + ' — 各渠道明细';
 
   var h='<div class="table-wrap"><table><thead><tr>'
-    +'<th>渠道</th><th class="dim">总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>有效转化</th></tr></thead><tbody>';
+    +'<th>渠道</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th></tr></thead><tbody>';
   rows.forEach(function(r){
     var cell=function(key,val){ return '<td class="'+(key===metric?'hl':'')+'">'+val+'</td>'; };
     h+='<tr><td>'+r.org+'</td>'
-      +cell('tot',  '—')
+      +cell('tot',  r.s.tot.toLocaleString())
       +cell('val',  r.s.val.toLocaleString())
       +cell('push', r.s.push.toLocaleString())
       +cell('book', r.s.book.toLocaleString())
       +cell('arr',  r.s.arr.toLocaleString())
-      +cell('eff', fmtPct(r.s.eff))+'</tr>';
+      +cell('cvrt', fmtPct(r.s.cvrt))+'</tr>';
   });
   h+='</tbody><tfoot><tr><td>合计</td>'
-    +'<td class="'+(metric==='tot'?'hl':'')+'">—</td>'
+    +'<td class="'+(metric==='tot'?'hl':'')+'">'+T.tot.toLocaleString()+'</td>'
     +'<td class="'+(metric==='val'?'hl':'')+'">'+T.val.toLocaleString()+'</td>'
     +'<td class="'+(metric==='push'?'hl':'')+'">'+T.push.toLocaleString()+'</td>'
     +'<td class="'+(metric==='book'?'hl':'')+'">'+T.book.toLocaleString()+'</td>'
     +'<td class="'+(metric==='arr'?'hl':'')+'">'+T.arr.toLocaleString()+'</td>'
-    +'<td class="'+(metric==='eff'?'hl':'')+'">'+fmtPct(T.eff)+'</td></tr></tfoot></table></div>';
+    +'<td class="'+(metric==='cvrt'?'hl':'')+'">'+fmtPct(T.cvrt)+'</td></tr></tfoot></table></div>';
   document.getElementById('modalBody').innerHTML=h;
   document.getElementById('mask').classList.add('show');
   animateNumbers(document.getElementById('modalBody'));
@@ -693,7 +690,7 @@ function renderManage(){
     + field('日期','<input type="date" id="f_date" value="'+latestDate()+'">')
     + field('渠道','<select id="f_org">'+ORGS.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>')
     + field('客服','<select id="f_staff">'+STAFF.map(function(s){return '<option>'+s+'</option>';}).join('')+'</select>')
-    + field('总数据量（暂不统计）','<input type="number" id="f_tot" min="0" placeholder="如 55">')
+    + field('总数据量','<input type="number" id="f_tot" min="0" placeholder="如 55">')
     + field('有效量','<input type="number" id="f_val" min="0" placeholder="如 44">')
     + field('推进量','<input type="number" id="f_push" min="0" placeholder="如 29">')
     + field('预约量','<input type="number" id="f_book" min="0" placeholder="如 16">')
@@ -705,11 +702,11 @@ function renderManage(){
     +'<button class="btn" onclick="exportCSV()">导出 CSV</button>'
     +'<button class="btn danger" onclick="clearSample()">清空示例数据</button>'
     +'<button class="btn danger" onclick="clearAll()">清空全部数据</button></div>'
-    +'<div style="font-size:12px;color:var(--txt2)">指标口径：有效转化 = 到诊 ÷ 有效 · 总数据暂不统计。同一「日期+渠道+客服」重复保存会覆盖旧记录。</div></div>';
+    +'<div style="font-size:12px;color:var(--txt2)">指标口径：总转化 = 到诊 ÷ 总数据。同一「日期+渠道+客服」重复保存会覆盖旧记录。</div></div>';
 
   h+='<div class="sec-title"><span class="dot blue"></span>数据明细 <span class="meta">共 '+records.length+' 条</span></div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>日期</th><th>渠道</th><th>客服</th><th class="dim">总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>有效转化</th><th>操作</th>'
+    +'<th>日期</th><th>渠道</th><th>客服</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th><th>操作</th>'
     +'</tr></thead><tbody id="recTbody"></tbody></table></div></div>';
   setView('数据管理', h);
   renderRecRows();
@@ -724,8 +721,8 @@ function renderRecRows(){
   var h='';
   sorted.slice(0,300).forEach(function(r){
     var s=sum([r]);
-    h+='<tr><td>'+r.date+'</td><td>'+r.org+'</td><td>'+(r.staff||'-')+'</td><td>—</td><td>'+r.val+'</td>'
-      +'<td>'+r.push+'</td><td>'+r.book+'</td><td>'+r.arr+'</td><td>'+fmtPct(s.eff)+'</td>'
+    h+='<tr><td>'+r.date+'</td><td>'+r.org+'</td><td>'+(r.staff||'-')+'</td><td>'+r.tot+'</td><td>'+r.val+'</td>'
+      +'<td>'+r.push+'</td><td>'+r.book+'</td><td>'+r.arr+'</td><td>'+fmtPct(s.cvrt)+'</td>'
       +'<td><button class="btn danger" style="padding:4px 10px;min-height:30px" onclick="delRecord('+r.id+')">删除</button></td></tr>';
   });
   document.getElementById('recTbody').innerHTML = h || '<tr><td colspan="10" class="empty">暂无数据，请先录入</td></tr>';
@@ -790,11 +787,11 @@ function openStaffDetail(st){
   ];
   document.getElementById('modalTitle').textContent = st+' — 客服漏斗明细';
   var h='<div class="table-wrap"><table><thead><tr>'
-    +'<th>周期</th><th class="dim">总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>有效转化</th></tr></thead><tbody>';
+    +'<th>周期</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th></tr></thead><tbody>';
   periods.forEach(function(p){
-    h+='<tr><td>'+p.label+'</td><td>—</td><td>'+p.s.val.toLocaleString()+'</td>'
+    h+='<tr><td>'+p.label+'</td><td>'+p.s.tot.toLocaleString()+'</td><td>'+p.s.val.toLocaleString()+'</td>'
       +'<td>'+p.s.push.toLocaleString()+'</td><td>'+p.s.book.toLocaleString()+'</td>'
-      +'<td class="hl">'+p.s.arr.toLocaleString()+'</td><td>'+fmtPct(p.s.eff)+'</td></tr>';
+      +'<td class="hl">'+p.s.arr.toLocaleString()+'</td><td>'+fmtPct(p.s.cvrt)+'</td></tr>';
   });
   h+='</tbody></table></div>';
 
@@ -802,15 +799,15 @@ function openStaffDetail(st){
   var monList=mine.filter(function(r){return r.date.slice(0,7)===month;});
   var chRows=ORGS.map(function(org){
     return {org:org, s:sum(monList.filter(function(r){return r.org===org;}))};
-  }).filter(function(r){return r.s.val>0;}).sort(function(a,b){return b.s.arr-a.s.arr;});
+  }).filter(function(r){return r.s.tot>0;}).sort(function(a,b){return b.s.arr-a.s.arr;});
   if(chRows.length){
     h+='<div class="sec-title" style="margin-top:16px"><span class="dot blue"></span>'+month+' 各渠道拆分</div>'
       +'<div class="table-wrap"><table><thead><tr>'
-      +'<th>渠道</th><th class="dim">总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>有效转化</th></tr></thead><tbody>';
+      +'<th>渠道</th><th >总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th></tr></thead><tbody>';
     chRows.forEach(function(r){
-      h+='<tr><td>'+r.org+'</td><td>—</td><td>'+r.s.val.toLocaleString()+'</td>'
+      h+='<tr><td>'+r.org+'</td><td>'+r.s.tot.toLocaleString()+'</td><td>'+r.s.val.toLocaleString()+'</td>'
         +'<td>'+r.s.push.toLocaleString()+'</td><td>'+r.s.book.toLocaleString()+'</td>'
-        +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td>'+fmtPct(r.s.eff)+'</td></tr>';
+        +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td>'+fmtPct(r.s.cvrt)+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }
@@ -1019,7 +1016,7 @@ function renderProfit(){
 /* ==================== 视图：年度数据 ==================== */
 var yrMonth = '';   // 当前查看的月份（空=最新月）
 function setYrMonth(m){ yrMonth=m; renderYear(); }
-var yrStaffMetric = 'val';   // 各客服月度矩阵当前指标
+var yrStaffMetric = 'tot';   // 各客服月度矩阵当前指标
 function setYrStaffMetric(m){ yrStaffMetric=m; renderYear(); }
 function renderYear(){
   var ld=latestDate(), year=ld.slice(0,4);
@@ -1029,11 +1026,11 @@ function renderYear(){
   months.sort();
   if(!yrMonth || months.indexOf(yrMonth)<0) yrMonth = months.length? months[months.length-1] : ld.slice(0,7);
 
-  var head='<th class="dim">总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>有效转化</th>';
+  var head='<th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th>';
   var row=function(name,s,strong){
-    return '<tr><td>'+name+'</td><td>—</td><td>'+s.val.toLocaleString()+'</td>'
+    return '<tr><td>'+name+'</td><td>'+s.tot.toLocaleString()+'</td><td>'+s.val.toLocaleString()+'</td>'
       +'<td>'+s.push.toLocaleString()+'</td><td>'+s.book.toLocaleString()+'</td>'
-      +'<td class="hl">'+s.arr.toLocaleString()+'</td><td>'+fmtPct(s.eff)+'</td></tr>';
+      +'<td class="hl">'+s.arr.toLocaleString()+'</td><td>'+fmtPct(s.cvrt)+'</td></tr>';
   };
 
   /* ① 全年各月汇总 */
@@ -1076,7 +1073,7 @@ function renderYear(){
   var MKEY=['01','02','03','04','05','06','07','08','09','10','11','12'];
   var ysmBtn=function(m,t){ return '<button type="button" class="btn'+(yrStaffMetric===m?' primary':'')+'" onclick="setYrStaffMetric(\''+m+'\')">'+t+'</button>'; };
   h+='<div class="sec-title"><span class="dot"></span>各客服月度漏斗 <span class="meta">按指标查看 · 点击切换</span></div>'
-    +'<div class="toolbar" style="margin-top:0">'+ysmBtn('val','有效')+ysmBtn('push','推进')+ysmBtn('book','预约')+ysmBtn('arr','到诊')+'</div>'
+    +'<div class="toolbar" style="margin-top:0">'+ysmBtn('tot','总数据')+ysmBtn('val','有效')+ysmBtn('push','推进')+ysmBtn('book','预约')+ysmBtn('arr','到诊')+'</div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr><th>客服</th>'
     +MLAB.map(function(t){return '<th>'+t+'</th>';}).join('')+'<th class="hl">全年</th></tr></thead><tbody>';
   staffs.forEach(function(st){
@@ -1096,7 +1093,7 @@ function renderYear(){
   h+='<td class="hl">'+(yrStaffMetric==='tot'?'—':Y[yrStaffMetric].toLocaleString())+'</td></tr></tfoot></table></div></div>';
 
   /* ⑤ 各客服全年漏斗明细 */
-  h+='<div class="sec-title"><span class="dot blue"></span>各客服全年漏斗明细 <span class="meta">有效→推进→预约→到诊</span></div>'
+  h+='<div class="sec-title"><span class="dot blue"></span>各客服全年漏斗明细 <span class="meta">总数据→有效→推进→预约→到诊</span></div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr><th>客服</th>'+head+'</tr></thead><tbody>';
   staffs.forEach(function(st){ h+=row(st, sum(ylist.filter(function(r){return r.staff===st;}))); });
   h+='</tbody><tfoot>'+row(year+' 全年合计', Y)+'</tfoot></table></div></div>';
@@ -1119,21 +1116,21 @@ function renderCS(){
   var h='<div class="toolbar" style="margin-top:0">'+btn('day','当日')+btn('mon','当月')+btn('year','年度')+'</div>';
 
   /* 汇总表：4 客服 + 合计 */
-  h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服外呼汇总 <span class="meta">接通率=接通÷有效 · 加微率=加微÷接通 · 有效率=有效÷加微</span></div>'
+  h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服外呼汇总 <span class="meta">接通率=接通÷总数据 · 加微率=加微÷接通 · 有效率=有效÷加微</span></div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>客服</th><th class="dim">总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
+    +'<th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
     +'</tr></thead><tbody>';
   var rows=STAFF_ALL.map(function(st){
     return {st:st, s:csSum(list.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
   rows.forEach(function(r){
-    h+='<tr><td>'+r.st+'</td><td>—</td><td>'+r.s.jt.toLocaleString()+'</td>'
-      +'<td class="hl">'+fmtPct(r.s.jtr_val)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
+    h+='<tr><td>'+r.st+'</td><td>'+r.s.tot.toLocaleString()+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
+      +'<td class="hl">'+fmtPct(r.s.jtr)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
       +'<td>'+r.s.val.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.vr)+'</td></tr>';
   });
   var T=csSum(list);
-  h+='</tbody><tfoot><tr><td>合计</td><td>—</td><td>'+T.jt.toLocaleString()+'</td>'
-    +'<td class="hl">'+fmtPct(T.jtr_val)+'</td><td>'+T.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(T.jwr)+'</td>'
+  h+='</tbody><tfoot><tr><td>合计</td><td>'+T.tot.toLocaleString()+'</td><td>'+T.jt.toLocaleString()+'</td>'
+    +'<td class="hl">'+fmtPct(T.jtr)+'</td><td>'+T.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(T.jwr)+'</td>'
     +'<td>'+T.val.toLocaleString()+'</td><td class="hl">'+fmtPct(T.vr)+'</td></tr></tfoot></table></div></div>';
 
   /* 分渠道查看：某渠道下 4 位客服的完整数据 */
@@ -1144,19 +1141,19 @@ function renderCS(){
   h+='<div class="sec-title"><span class="dot"></span>'+label+' 分渠道客服数据 <span class="meta">当前渠道：'+csChannel+'</span></div>'
     +'<div class="toolbar" style="margin-top:0">'+ORGS.map(function(o){return cbtn(o);}).join('')+'</div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>客服</th><th class="dim">总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
+    +'<th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
     +'</tr></thead><tbody>';
   var chRows=STAFF_ALL.map(function(st){
     return {st:st, s:csSum(chList.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
   chRows.forEach(function(r){
-    h+='<tr><td>'+r.st+'</td><td>—</td><td>'+r.s.jt.toLocaleString()+'</td>'
-      +'<td class="hl">'+fmtPct(r.s.jtr_val)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
+    h+='<tr><td>'+r.st+'</td><td>'+r.s.tot.toLocaleString()+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
+      +'<td class="hl">'+fmtPct(r.s.jtr)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
       +'<td>'+r.s.val.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.vr)+'</td></tr>';
   });
   var CT=csSum(chList);
-  h+='</tbody><tfoot><tr><td>'+csChannel+' 合计</td><td>—</td><td>'+CT.jt.toLocaleString()+'</td>'
-    +'<td class="hl">'+fmtPct(CT.jtr_val)+'</td><td>'+CT.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.jwr)+'</td>'
+  h+='</tbody><tfoot><tr><td>'+csChannel+' 合计</td><td>'+CT.tot.toLocaleString()+'</td><td>'+CT.jt.toLocaleString()+'</td>'
+    +'<td class="hl">'+fmtPct(CT.jtr)+'</td><td>'+CT.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.jwr)+'</td>'
     +'<td>'+CT.val.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.vr)+'</td></tr></tfoot></table></div></div>';
 
   /* 录入 */
@@ -1165,7 +1162,7 @@ function renderCS(){
     + field('日期','<input type="date" id="c_date" value="'+ld+'">')
     + field('渠道','<select id="c_org">'+ORGS.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>')
     + field('客服','<select id="c_staff">'+STAFF.map(function(s){return '<option>'+s+'</option>';}).join('')+'</select>')
-    + field('总数据量（暂不统计）','<input type="number" id="c_tot" min="0" placeholder="如 55">')
+    + field('总数据量','<input type="number" id="c_tot" min="0" placeholder="如 55">')
     + field('接通量','<input type="number" id="c_jt" min="0" placeholder="如 34">')
     + field('加微量','<input type="number" id="c_jw" min="0" placeholder="如 18">')
     + field('有效量','<input type="number" id="c_val" min="0" placeholder="如 13">')
@@ -1177,7 +1174,7 @@ function renderCS(){
   /* 明细列表 */
   h+='<div class="sec-title"><span class="dot blue"></span>数据明细 <span class="meta">共 '+csRecords.length+' 条</span></div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>日期</th><th>渠道</th><th>客服</th><th class="dim">总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th><th>操作</th>'
+    +'<th>日期</th><th>渠道</th><th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th><th>操作</th>'
     +'</tr></thead><tbody id="csTbody"></tbody></table></div></div>';
 
   setView('客服数据', h);
@@ -1189,7 +1186,7 @@ function renderCsRows(){
   var h='';
   sorted.slice(0,200).forEach(function(r){
     var s=csSum([r]);
-    h+='<tr><td>'+r.date+'</td><td>'+(r.org||'-')+'</td><td>'+r.staff+'</td><td>—</td><td>'+r.jt+'</td>'
+    h+='<tr><td>'+r.date+'</td><td>'+(r.org||'-')+'</td><td>'+r.staff+'</td><td>'+r.tot+'</td><td>'+r.jt+'</td>'
       +'<td>'+fmtPct(s.jtr)+'</td><td>'+r.jw+'</td><td>'+fmtPct(s.jwr)+'</td><td>'+r.val+'</td><td>'+fmtPct(s.vr)+'</td>'
       +'<td><button class="btn danger" style="padding:4px 10px;min-height:30px" onclick="delCs('+r.id+')">删除</button></td></tr>';
   });
