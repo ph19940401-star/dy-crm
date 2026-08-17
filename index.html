@@ -486,6 +486,10 @@ function sum(list){
   return s;
 }
 function fmtPct(n){ return n.toFixed(2)+'%'; }
+/* 总数据暂空：0 一律显示「—」；总转化/接通率等以总数据为分母的指标分母为空时也显示「—」 */
+function fmtDash(n){ return (n===0||n==null||n==='') ? '—' : (typeof n==='number'? n.toLocaleString() : n); }
+function fmtCvrt(s){ return s.tot ? fmtPct(s.cvrt) : '—'; }
+function fmtJtr(s){ return s.tot ? fmtPct(s.jtr) : '—'; }
 
 /* ==================== 视图：仪表盘 ==================== */
 /* ==================== 每日一言 ==================== */
@@ -532,23 +536,23 @@ function renderDashboard(){
   /* 当日汇总 */
   html += '<div class="sec-title"><span class="dot"></span>当日汇总 <span class="meta">'+ld+'（最新数据日）· 点击卡片查看各渠道明细</span></div>';
   html += '<div class="kpi-grid">'
-    + kpi('总数据', D.tot.toLocaleString(), 'c-blue',  'day','tot')
+    + kpi('总数据', fmtDash(D.tot), 'c-blue',  'day','tot')
     + kpi('有效',   D.val.toLocaleString(), 'c-dark',  'day','val')
     + kpi('推进',   D.push.toLocaleString(),'c-orange','day','push')
     + kpi('预约',   D.book.toLocaleString(),'c-teal',  'day','book')
     + kpi('到诊',   D.arr+'<small>人</small>','c-red', 'day','arr')
-    + kpi('总转化', fmtPct(D.cvrt),         'c-green', 'day','cvrt')
+    + kpi('总转化', fmtCvrt(D),         'c-green', 'day','cvrt')
     + '</div>';
 
   /* 当月汇总 */
   html += '<div class="sec-title"><span class="dot blue"></span>当月汇总 <span class="meta">'+month+' · 已统计 '+daysInMonth+' 天</span></div>';
   html += '<div class="kpi-grid">'
-    + kpi('月总数据', M.tot.toLocaleString(),  'c-blue',  'mon','tot')
+    + kpi('月总数据', fmtDash(M.tot),  'c-blue',  'mon','tot')
     + kpi('月有效',   M.val.toLocaleString(),  'c-dark',  'mon','val')
     + kpi('月推进',   M.push.toLocaleString(), 'c-orange','mon','push')
     + kpi('月预约',   M.book.toLocaleString(), 'c-teal',  'mon','book')
     + kpi('月到诊',   M.arr.toLocaleString()+'<small>人</small>','c-red','mon','arr')
-    + kpi('月总转化', fmtPct(M.cvrt),          'c-green', 'mon','cvrt')
+    + kpi('月总转化', fmtCvrt(M),          'c-green', 'mon','cvrt')
     + '</div>';
 
   /* 图表行 */
@@ -662,20 +666,20 @@ function openDetail(scope, metric, label){
   rows.forEach(function(r){
     var cell=function(key,val){ return '<td class="'+(key===metric?'hl':'')+'">'+val+'</td>'; };
     h+='<tr><td>'+r.org+'</td>'
-      +cell('tot',  r.s.tot.toLocaleString())
+      +cell('tot',  fmtDash(r.s.tot))
       +cell('val',  r.s.val.toLocaleString())
       +cell('push', r.s.push.toLocaleString())
       +cell('book', r.s.book.toLocaleString())
       +cell('arr',  r.s.arr.toLocaleString())
-      +cell('cvrt', fmtPct(r.s.cvrt))+'</tr>';
+      +cell('cvrt', fmtCvrt(r.s))+'</tr>';
   });
   h+='</tbody><tfoot><tr><td>合计</td>'
-    +'<td class="'+(metric==='tot'?'hl':'')+'">'+T.tot.toLocaleString()+'</td>'
+    +'<td class="'+(metric==='tot'?'hl':'')+'">'+fmtDash(T.tot)+'</td>'
     +'<td class="'+(metric==='val'?'hl':'')+'">'+T.val.toLocaleString()+'</td>'
     +'<td class="'+(metric==='push'?'hl':'')+'">'+T.push.toLocaleString()+'</td>'
     +'<td class="'+(metric==='book'?'hl':'')+'">'+T.book.toLocaleString()+'</td>'
     +'<td class="'+(metric==='arr'?'hl':'')+'">'+T.arr.toLocaleString()+'</td>'
-    +'<td class="'+(metric==='cvrt'?'hl':'')+'">'+fmtPct(T.cvrt)+'</td></tr></tfoot></table></div>';
+    +'<td class="'+(metric==='cvrt'?'hl':'')+'">'+fmtCvrt(T)+'</td></tr></tfoot></table></div>';
   document.getElementById('modalBody').innerHTML=h;
   document.getElementById('mask').classList.add('show');
   animateNumbers(document.getElementById('modalBody'));
@@ -721,8 +725,8 @@ function renderRecRows(){
   var h='';
   sorted.slice(0,300).forEach(function(r){
     var s=sum([r]);
-    h+='<tr><td>'+r.date+'</td><td>'+r.org+'</td><td>'+(r.staff||'-')+'</td><td>'+r.tot+'</td><td>'+r.val+'</td>'
-      +'<td>'+r.push+'</td><td>'+r.book+'</td><td>'+r.arr+'</td><td>'+fmtPct(s.cvrt)+'</td>'
+    h+='<tr><td>'+r.date+'</td><td>'+r.org+'</td><td>'+(r.staff||'-')+'</td><td>'+fmtDash(r.tot)+'</td><td>'+r.val+'</td>'
+      +'<td>'+r.push+'</td><td>'+r.book+'</td><td>'+r.arr+'</td><td>'+fmtCvrt(s)+'</td>'
       +'<td><button class="btn danger" style="padding:4px 10px;min-height:30px" onclick="delRecord('+r.id+')">删除</button></td></tr>';
   });
   document.getElementById('recTbody').innerHTML = h || '<tr><td colspan="10" class="empty">暂无数据，请先录入</td></tr>';
@@ -789,9 +793,9 @@ function openStaffDetail(st){
   var h='<div class="table-wrap"><table><thead><tr>'
     +'<th>周期</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th></tr></thead><tbody>';
   periods.forEach(function(p){
-    h+='<tr><td>'+p.label+'</td><td>'+p.s.tot.toLocaleString()+'</td><td>'+p.s.val.toLocaleString()+'</td>'
+    h+='<tr><td>'+p.label+'</td><td>'+fmtDash(p.s.tot)+'</td><td>'+p.s.val.toLocaleString()+'</td>'
       +'<td>'+p.s.push.toLocaleString()+'</td><td>'+p.s.book.toLocaleString()+'</td>'
-      +'<td class="hl">'+p.s.arr.toLocaleString()+'</td><td>'+fmtPct(p.s.cvrt)+'</td></tr>';
+      +'<td class="hl">'+p.s.arr.toLocaleString()+'</td><td>'+fmtCvrt(p.s)+'</td></tr>';
   });
   h+='</tbody></table></div>';
 
@@ -799,15 +803,15 @@ function openStaffDetail(st){
   var monList=mine.filter(function(r){return r.date.slice(0,7)===month;});
   var chRows=ORGS.map(function(org){
     return {org:org, s:sum(monList.filter(function(r){return r.org===org;}))};
-  }).filter(function(r){return r.s.tot>0;}).sort(function(a,b){return b.s.arr-a.s.arr;});
+  }).filter(function(r){return r.s.val>0 || r.s.push>0 || r.s.book>0 || r.s.arr>0;}).sort(function(a,b){return b.s.arr-a.s.arr;});
   if(chRows.length){
     h+='<div class="sec-title" style="margin-top:16px"><span class="dot blue"></span>'+month+' 各渠道拆分</div>'
       +'<div class="table-wrap"><table><thead><tr>'
       +'<th>渠道</th><th >总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th></tr></thead><tbody>';
     chRows.forEach(function(r){
-      h+='<tr><td>'+r.org+'</td><td>'+r.s.tot.toLocaleString()+'</td><td>'+r.s.val.toLocaleString()+'</td>'
+      h+='<tr><td>'+r.org+'</td><td>'+fmtDash(r.s.tot)+'</td><td>'+r.s.val.toLocaleString()+'</td>'
         +'<td>'+r.s.push.toLocaleString()+'</td><td>'+r.s.book.toLocaleString()+'</td>'
-        +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td>'+fmtPct(r.s.cvrt)+'</td></tr>';
+        +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td>'+fmtCvrt(r.s)+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }
@@ -1028,9 +1032,9 @@ function renderYear(){
 
   var head='<th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th>';
   var row=function(name,s,strong){
-    return '<tr><td>'+name+'</td><td>'+s.tot.toLocaleString()+'</td><td>'+s.val.toLocaleString()+'</td>'
+    return '<tr><td>'+name+'</td><td>'+fmtDash(s.tot)+'</td><td>'+s.val.toLocaleString()+'</td>'
       +'<td>'+s.push.toLocaleString()+'</td><td>'+s.book.toLocaleString()+'</td>'
-      +'<td class="hl">'+s.arr.toLocaleString()+'</td><td>'+fmtPct(s.cvrt)+'</td></tr>';
+      +'<td class="hl">'+s.arr.toLocaleString()+'</td><td>'+fmtCvrt(s)+'</td></tr>';
   };
 
   /* ① 全年各月汇总 */
@@ -1124,13 +1128,13 @@ function renderCS(){
     return {st:st, s:csSum(list.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
   rows.forEach(function(r){
-    h+='<tr><td>'+r.st+'</td><td>'+r.s.tot.toLocaleString()+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
-      +'<td class="hl">'+fmtPct(r.s.jtr)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
+    h+='<tr><td>'+r.st+'</td><td>'+fmtDash(r.s.tot)+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
+      +'<td class="hl">'+fmtJtr(r.s)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
       +'<td>'+r.s.val.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.vr)+'</td></tr>';
   });
   var T=csSum(list);
-  h+='</tbody><tfoot><tr><td>合计</td><td>'+T.tot.toLocaleString()+'</td><td>'+T.jt.toLocaleString()+'</td>'
-    +'<td class="hl">'+fmtPct(T.jtr)+'</td><td>'+T.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(T.jwr)+'</td>'
+  h+='</tbody><tfoot><tr><td>合计</td><td>'+fmtDash(T.tot)+'</td><td>'+T.jt.toLocaleString()+'</td>'
+    +'<td class="hl">'+fmtJtr(T)+'</td><td>'+T.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(T.jwr)+'</td>'
     +'<td>'+T.val.toLocaleString()+'</td><td class="hl">'+fmtPct(T.vr)+'</td></tr></tfoot></table></div></div>';
 
   /* 分渠道查看：某渠道下 4 位客服的完整数据 */
@@ -1147,13 +1151,13 @@ function renderCS(){
     return {st:st, s:csSum(chList.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
   chRows.forEach(function(r){
-    h+='<tr><td>'+r.st+'</td><td>'+r.s.tot.toLocaleString()+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
-      +'<td class="hl">'+fmtPct(r.s.jtr)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
+    h+='<tr><td>'+r.st+'</td><td>'+fmtDash(r.s.tot)+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
+      +'<td class="hl">'+fmtJtr(r.s)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
       +'<td>'+r.s.val.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.vr)+'</td></tr>';
   });
   var CT=csSum(chList);
-  h+='</tbody><tfoot><tr><td>'+csChannel+' 合计</td><td>'+CT.tot.toLocaleString()+'</td><td>'+CT.jt.toLocaleString()+'</td>'
-    +'<td class="hl">'+fmtPct(CT.jtr)+'</td><td>'+CT.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.jwr)+'</td>'
+  h+='</tbody><tfoot><tr><td>'+csChannel+' 合计</td><td>'+fmtDash(CT.tot)+'</td><td>'+CT.jt.toLocaleString()+'</td>'
+    +'<td class="hl">'+fmtJtr(CT)+'</td><td>'+CT.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.jwr)+'</td>'
     +'<td>'+CT.val.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.vr)+'</td></tr></tfoot></table></div></div>';
 
   /* 录入 */
@@ -1186,8 +1190,8 @@ function renderCsRows(){
   var h='';
   sorted.slice(0,200).forEach(function(r){
     var s=csSum([r]);
-    h+='<tr><td>'+r.date+'</td><td>'+(r.org||'-')+'</td><td>'+r.staff+'</td><td>'+r.tot+'</td><td>'+r.jt+'</td>'
-      +'<td>'+fmtPct(s.jtr)+'</td><td>'+r.jw+'</td><td>'+fmtPct(s.jwr)+'</td><td>'+r.val+'</td><td>'+fmtPct(s.vr)+'</td>'
+    h+='<tr><td>'+r.date+'</td><td>'+(r.org||'-')+'</td><td>'+r.staff+'</td><td>'+fmtDash(r.tot)+'</td><td>'+r.jt+'</td>'
+      +'<td>'+fmtJtr(s)+'</td><td>'+r.jw+'</td><td>'+fmtPct(s.jwr)+'</td><td>'+r.val+'</td><td>'+fmtPct(s.vr)+'</td>'
       +'<td><button class="btn danger" style="padding:4px 10px;min-height:30px" onclick="delCs('+r.id+')">删除</button></td></tr>';
   });
   document.getElementById('csTbody').innerHTML = h || '<tr><td colspan="11" class="empty">暂无数据，请先录入</td></tr>';
@@ -1248,7 +1252,7 @@ function importJSON(ev){
 }
 function exportCSV(){
   var head='日期,渠道,客服,总数据,有效,推进,预约,到诊\n';
-  var body=records.map(function(r){return [r.date,r.org,r.staff||'',r.tot,r.val,r.push,r.book,r.arr].join(',');}).join('\n');
+  var body=records.map(function(r){return [r.date,r.org,r.staff||'',fmtDash(r.tot),r.val,r.push,r.book,r.arr].join(',');}).join('\n');
   var blob=new Blob(['﻿'+head+body],{type:'text/csv'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
