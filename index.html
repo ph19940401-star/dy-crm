@@ -554,13 +554,13 @@ function renderDashboard(){
     + '<div class="panel"><h3>近 7 日总数据 / 到诊趋势</h3>'
     + '<div class="legend"><span class="lg"><i class="sw" style="background:#1d6fe0"></i>总数据</span><span class="lg"><i class="sw" style="background:#e6a23c"></i>到诊</span></div>'
     + '<div id="trendChart"></div></div>'
-    + '<div class="panel"><h3>'+ld+' · 各渠道到诊</h3><div class="legend"><span class="lg"><i class="sw" style="background:#0e9f9f"></i>当日到诊（人）</span></div>'
+    + '<div class="panel"><h3>'+month+' · 各渠道到诊</h3><div class="legend"><span class="lg"><i class="sw" style="background:#0e9f9f"></i>当月到诊（人）</span></div>'
     + '<div id="orgChart"></div></div>'
     + '</div>';
 
   setView('仪表盘', html);
   drawTrend(ld);
-  drawOrgBars(ld);
+  drawOrgBars(month);
 }
 
 function kpi(label, value, cls, scope, metric){
@@ -613,10 +613,10 @@ function drawTrend(ld){
   document.getElementById('trendChart').innerHTML=s;
 }
 
-/* 各渠道到诊横向柱状图（当日） */
-function drawOrgBars(ld){
+/* 各渠道到诊横向柱状图（当月累计） */
+function drawOrgBars(month){
   var rows = ORGS.map(function(org){
-    var s=sum(records.filter(function(r){return r.date===ld && r.org===org;}));
+    var s=sum(records.filter(function(r){return r.date.slice(0,7)===month && r.org===org;}));
     return {org:org, arr:s.arr};
   }).sort(function(a,b){return b.arr-a.arr;});
   var max=Math.max.apply(null,rows.map(function(r){return r.arr;})) || 1;
