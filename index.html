@@ -1109,56 +1109,56 @@ function renderYear(){
 function setCsPeriod(p){ csPeriod=p; renderCS(); }
 function renderCS(){
   var ld=latestDate(), month=ld.slice(0,7), year=ld.slice(0,4);
-  var label, list;
-  if(csPeriod==='day'){ label='当日（'+ld+'）';    list=csRecords.filter(function(r){return r.date===ld;}); }
-  else if(csPeriod==='mon'){ label='当月（'+month+'）'; list=csRecords.filter(function(r){return r.date.slice(0,7)===month;}); }
-  else{ label='年度（'+year+'）'; list=csRecords.filter(function(r){return r.date.slice(0,4)===year;}); }
+  var label, list, recList;
+  if(csPeriod==='day'){ label='当日（'+ld+'）';    list=csRecords.filter(function(r){return r.date===ld;}); recList=records.filter(function(r){return r.date===ld;}); }
+  else if(csPeriod==='mon'){ label='当月（'+month+'）'; list=csRecords.filter(function(r){return r.date.slice(0,7)===month;}); recList=records.filter(function(r){return r.date.slice(0,7)===month;}); }
+  else{ label='年度（'+year+'）'; list=csRecords.filter(function(r){return r.date.slice(0,4)===year;}); recList=records.filter(function(r){return r.date.slice(0,4)===year;}); }
 
   var btn=function(p,t){
     return '<button class="btn'+(csPeriod===p?' primary':'')+'" onclick="setCsPeriod(\''+p+'\')">'+t+'</button>';
   };
   var h='<div class="toolbar" style="margin-top:0">'+btn('day','当日')+btn('mon','当月')+btn('year','年度')+'</div>';
 
-  /* 汇总表：4 客服 + 合计 */
-  h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服外呼汇总 <span class="meta">接通率=接通÷总数据 · 加微率=加微÷接通 · 有效率=有效÷加微</span></div>'
+  /* 汇总表：4 客服 + 合计（基于主漏斗 records，展示客服维度漏斗） */
+  h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服漏斗汇总 <span class="meta">总数据暂空 | 总转化=到诊÷有效</span></div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
+    +'<th>客服</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th>'
     +'</tr></thead><tbody>';
   var rows=STAFF_ALL.map(function(st){
-    return {st:st, s:csSum(list.filter(function(r){return r.staff===st;}))};
+    return {st:st, s:sum(recList.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
   rows.forEach(function(r){
-    h+='<tr><td>'+r.st+'</td><td>'+fmtDash(r.s.tot)+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
-      +'<td class="hl">'+fmtJtr(r.s)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
-      +'<td>'+r.s.val.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.vr)+'</td></tr>';
+    h+='<tr><td>'+r.st+'</td><td>'+fmtDash(r.s.tot)+'</td><td>'+r.s.val.toLocaleString()+'</td>'
+      +'<td>'+r.s.push.toLocaleString()+'</td><td>'+r.s.book.toLocaleString()+'</td>'
+      +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(r.s)+'</td></tr>';
   });
-  var T=csSum(list);
-  h+='</tbody><tfoot><tr><td>合计</td><td>'+fmtDash(T.tot)+'</td><td>'+T.jt.toLocaleString()+'</td>'
-    +'<td class="hl">'+fmtJtr(T)+'</td><td>'+T.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(T.jwr)+'</td>'
-    +'<td>'+T.val.toLocaleString()+'</td><td class="hl">'+fmtPct(T.vr)+'</td></tr></tfoot></table></div></div>';
+  var T=sum(recList);
+  h+='</tbody><tfoot><tr><td>合计</td><td>'+fmtDash(T.tot)+'</td><td>'+T.val.toLocaleString()+'</td>'
+    +'<td>'+T.push.toLocaleString()+'</td><td>'+T.book.toLocaleString()+'</td>'
+    +'<td class="hl">'+T.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(T)+'</td></tr></tfoot></table></div></div>';
 
-  /* 分渠道查看：某渠道下 4 位客服的完整数据 */
+  /* 分渠道查看：某渠道下 4 位客服的漏斗数据 */
   var cbtn=function(org){
     return '<button class="btn'+(csChannel===org?' primary':'')+'" onclick="setCsChannel(\''+org+'\')">'+org+'</button>';
   };
-  var chList=list.filter(function(r){return r.org===csChannel;});
+  var chRecList=recList.filter(function(r){return r.org===csChannel;});
   h+='<div class="sec-title"><span class="dot"></span>'+label+' 分渠道客服数据 <span class="meta">当前渠道：'+csChannel+'</span></div>'
     +'<div class="toolbar" style="margin-top:0">'+ORGS.map(function(o){return cbtn(o);}).join('')+'</div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th>'
+    +'<th>客服</th><th>总数据</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th>'
     +'</tr></thead><tbody>';
   var chRows=STAFF_ALL.map(function(st){
-    return {st:st, s:csSum(chList.filter(function(r){return r.staff===st;}))};
+    return {st:st, s:sum(chRecList.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
   chRows.forEach(function(r){
-    h+='<tr><td>'+r.st+'</td><td>'+fmtDash(r.s.tot)+'</td><td>'+r.s.jt.toLocaleString()+'</td>'
-      +'<td class="hl">'+fmtJtr(r.s)+'</td><td>'+r.s.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.jwr)+'</td>'
-      +'<td>'+r.s.val.toLocaleString()+'</td><td class="hl">'+fmtPct(r.s.vr)+'</td></tr>';
+    h+='<tr><td>'+r.st+'</td><td>'+fmtDash(r.s.tot)+'</td><td>'+r.s.val.toLocaleString()+'</td>'
+      +'<td>'+r.s.push.toLocaleString()+'</td><td>'+r.s.book.toLocaleString()+'</td>'
+      +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(r.s)+'</td></tr>';
   });
-  var CT=csSum(chList);
-  h+='</tbody><tfoot><tr><td>'+csChannel+' 合计</td><td>'+fmtDash(CT.tot)+'</td><td>'+CT.jt.toLocaleString()+'</td>'
-    +'<td class="hl">'+fmtJtr(CT)+'</td><td>'+CT.jw.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.jwr)+'</td>'
-    +'<td>'+CT.val.toLocaleString()+'</td><td class="hl">'+fmtPct(CT.vr)+'</td></tr></tfoot></table></div></div>';
+  var CT=sum(chRecList);
+  h+='</tbody><tfoot><tr><td>'+csChannel+' 合计</td><td>'+fmtDash(CT.tot)+'</td><td>'+CT.val.toLocaleString()+'</td>'
+    +'<td>'+CT.push.toLocaleString()+'</td><td>'+CT.book.toLocaleString()+'</td>'
+    +'<td class="hl">'+CT.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(CT)+'</td></tr></tfoot></table></div></div>';
 
   /* 录入 */
   h+='<div class="sec-title"><span class="dot blue"></span>录入客服数据</div>'
