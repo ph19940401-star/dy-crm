@@ -134,20 +134,8 @@
   .rank-bar i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,#1d6fe0,#0e9f9f);}
   .rank-num{width:110px;text-align:right;font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums;}
 
-  /* 客服漏斗汇总 - 紧凑表格 */
-  .cs-summary-panel{display:flex;justify-content:center;padding:0;background:transparent;border:none;box-shadow:none;}
-  .cs-summary-table{table-layout:fixed;width:100%;max-width:720px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;font-size:14px;}
-  .cs-summary-table th{background:#f7f9fc;color:var(--txt2);font-weight:600;padding:11px 10px;border-bottom:1px solid var(--line);}
-  .cs-summary-table td{padding:12px 10px;border-bottom:1px solid var(--line);}
-  .cs-summary-table tbody tr:hover{background:#fafbfc;}
-  .cs-summary-table tfoot{background:#f7f9fc;font-weight:700;}
-  .cs-summary-table tfoot td{border-bottom:none;}
-  .cs-summary-table th:first-child,.cs-summary-table td:first-child{text-align:left;padding-left:16px;}
-  .cs-summary-table th:last-child,.cs-summary-table td:last-child{padding-right:16px;}
-
-  /* 分渠道客服数据 - 紧凑表格 */
-  .cs-table{table-layout:fixed;}
-  .cs-table th,.cs-table td{padding:9px 8px;}
+  /* 客服数据表格统一样式 */
+  .cs-table{table-layout:fixed;width:100%;}
 
   .empty{padding:60px 0;text-align:center;color:var(--txt2);}
   .placeholder{padding:80px 20px;text-align:center;color:var(--txt2);}
@@ -202,9 +190,6 @@
     .modal-body{padding:6px 14px 24px;}
     table{font-size:12px;}
     th,td{padding:9px 8px;}
-    .cs-summary-table th,.cs-summary-table td{padding:9px 8px;}
-    .cs-summary-table th:first-child,.cs-summary-table td:first-child{padding-left:10px;}
-    .cs-summary-table th:last-child,.cs-summary-table td:last-child{padding-right:10px;}
   }
   @media (min-width:901px) and (max-width:1200px){
     .kpi-grid{grid-template-columns:repeat(3,1fr);}
@@ -1136,16 +1121,16 @@ function renderCS(){
     return {st:st, s:sum(recList.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
   h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服漏斗汇总 <span class="meta">总转化=到诊÷有效</span></div>'
-    +'<div class="panel cs-summary-panel"><div class="table-wrap"><table class="cs-summary-table"><thead><tr>'
-    +'<th>客服</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th>'
+    +'<div class="panel" style="padding:12px 14px"><div class="table-wrap"><table class="cs-table"><thead><tr>'
+    +'<th style="width:20%;text-align:left">客服</th><th style="width:16%">有效</th><th style="width:16%">推进</th><th style="width:16%">预约</th><th style="width:16%">到诊</th><th style="width:16%">总转化</th>'
     +'</tr></thead><tbody>';
   rows.forEach(function(r){
-    h+='<tr><td><b>'+r.st+'</b></td><td>'+r.s.val.toLocaleString()+'</td>'
+    h+='<tr><td>'+r.st+'</td><td>'+r.s.val.toLocaleString()+'</td>'
       +'<td>'+r.s.push.toLocaleString()+'</td><td>'+r.s.book.toLocaleString()+'</td>'
       +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(r.s)+'</td></tr>';
   });
   var T=sum(recList);
-  h+='</tbody><tfoot><tr><td><b>合计</b></td><td>'+T.val.toLocaleString()+'</td>'
+  h+='</tbody><tfoot><tr><td>合计</td><td>'+T.val.toLocaleString()+'</td>'
     +'<td>'+T.push.toLocaleString()+'</td><td>'+T.book.toLocaleString()+'</td>'
     +'<td class="hl">'+T.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(T)+'</td></tr></tfoot></table></div></div>';
 
