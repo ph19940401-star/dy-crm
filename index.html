@@ -482,13 +482,13 @@ function todayStr(){
 function sum(list){
   var s={tot:0,val:0,push:0,book:0,arr:0};
   list.forEach(function(r){ s.tot+=r.tot; s.val+=r.val; s.push+=r.push; s.book+=r.book; s.arr+=r.arr; });
-  s.cvrt = s.tot? s.arr/s.tot*100 : 0;    // 总转化 = 到诊 ÷ 总数据
+  s.cvrt = s.val? s.arr/s.val*100 : 0;    // 转化 = 到诊 ÷ 有效
   return s;
 }
 function fmtPct(n){ return n.toFixed(2)+'%'; }
 /* 总数据暂空：0 一律显示「—」；总转化/接通率等以总数据为分母的指标分母为空时也显示「—」 */
 function fmtDash(n){ return (n===0||n==null||n==='') ? '—' : (typeof n==='number'? n.toLocaleString() : n); }
-function fmtCvrt(s){ return s.tot ? fmtPct(s.cvrt) : '—'; }
+function fmtCvrt(s){ return s.val ? fmtPct(s.cvrt) : '—'; }
 function fmtJtr(s){ return s.tot ? fmtPct(s.jtr) : '—'; }
 
 /* ==================== 视图：仪表盘 ==================== */
@@ -645,7 +645,7 @@ var METRICS = {
   push:{name:'推进',   get:function(s){return s.push;}, fmt:function(s){return s.push.toLocaleString();}},
   book:{name:'预约',   get:function(s){return s.book;}, fmt:function(s){return s.book.toLocaleString();}},
   arr: {name:'到诊',   get:function(s){return s.arr;},  fmt:function(s){return s.arr.toLocaleString();}},
-  cvrt:{name:'总转化', get:function(s){return s.cvrt;}, fmt:function(s){return fmtPct(s.cvrt);}},
+  cvrt:{name:'总转化', get:function(s){return s.cvrt;}, fmt:function(s){return fmtCvrt(s);}},
 };
 function openDetail(scope, metric, label){
   var ld=latestDate(), month=ld.slice(0,7);
@@ -706,7 +706,7 @@ function renderManage(){
     +'<button class="btn" onclick="exportCSV()">导出 CSV</button>'
     +'<button class="btn danger" onclick="clearSample()">清空示例数据</button>'
     +'<button class="btn danger" onclick="clearAll()">清空全部数据</button></div>'
-    +'<div style="font-size:12px;color:var(--txt2)">指标口径：总转化 = 到诊 ÷ 总数据。同一「日期+渠道+客服」重复保存会覆盖旧记录。</div></div>';
+    +'<div style="font-size:12px;color:var(--txt2)">指标口径：转化 = 到诊 ÷ 有效（总数据暂空，不计入转化）。同一「日期+渠道+客服」重复保存会覆盖旧记录。</div></div>';
 
   h+='<div class="sec-title"><span class="dot blue"></span>数据明细 <span class="meta">共 '+records.length+' 条</span></div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
@@ -773,8 +773,8 @@ function renderRank(){
     h+='<div class="rank-item '+(i<3?'r'+(i+1):'')+'" onclick="openStaffDetail(\''+r.org+'\')">'
       +'<div class="rank-no">'+(i+1)+'</div>'
       +'<div class="rank-name">'+r.org+'</div>'
-      +'<div class="rank-bar"><i style="width:'+(r.s.arr/max*100).toFixed(1)+'%" title="转化 '+fmtPct(r.s.cvrt)+'"></i></div>'
-      +'<div class="rank-num">'+r.s.arr+' 人<div style="font-size:11px;color:var(--txt2);font-weight:400">转化 '+fmtPct(r.s.cvrt)+'</div></div></div>';
+      +'<div class="rank-bar"><i style="width:'+(r.s.arr/max*100).toFixed(1)+'%" title="转化 '+fmtCvrt(r.s)+'"></i></div>'
+      +'<div class="rank-num">'+r.s.arr+' 人<div style="font-size:11px;color:var(--txt2);font-weight:400">转化 '+fmtCvrt(r.s)+'</div></div></div>';
   });
   h+='</div>';
   setView('龙虎榜单', h);
