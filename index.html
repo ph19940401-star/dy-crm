@@ -1160,65 +1160,9 @@ function renderCS(){
     +'<td>'+CT.push.toLocaleString()+'</td><td>'+CT.book.toLocaleString()+'</td>'
     +'<td class="hl">'+CT.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(CT)+'</td></tr></tfoot></table></div></div>';
 
-  /* 录入 */
-  h+='<div class="sec-title"><span class="dot blue"></span>录入客服数据</div>'
-    +'<div class="panel"><div class="form-grid">'
-    + field('日期','<input type="date" id="c_date" value="'+ld+'">')
-    + field('渠道','<select id="c_org">'+ORGS.map(function(o){return '<option>'+o+'</option>';}).join('')+'</select>')
-    + field('客服','<select id="c_staff">'+STAFF.map(function(s){return '<option>'+s+'</option>';}).join('')+'</select>')
-    + field('总数据量','<input type="number" id="c_tot" min="0" placeholder="如 55">')
-    + field('接通量','<input type="number" id="c_jt" min="0" placeholder="如 34">')
-    + field('加微量','<input type="number" id="c_jw" min="0" placeholder="如 18">')
-    + field('有效量','<input type="number" id="c_val" min="0" placeholder="如 13">')
-    +'</div>'
-    +'<div class="toolbar"><button class="btn primary" onclick="addCs()">＋ 保存记录</button>'
-    +'<button class="btn danger" onclick="clearCs()">清空客服数据</button></div>'
-    +'<div style="font-size:12px;color:var(--txt2)">同一「日期+渠道+客服」重复保存会覆盖旧记录。</div></div>';
-
-  /* 明细列表 */
-  h+='<div class="sec-title"><span class="dot blue"></span>数据明细 <span class="meta">共 '+csRecords.length+' 条</span></div>'
-    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>日期</th><th>渠道</th><th>客服</th><th>总数据</th><th>接通</th><th>接通率</th><th>加微</th><th>加微率</th><th>有效</th><th>有效率</th><th>操作</th>'
-    +'</tr></thead><tbody id="csTbody"></tbody></table></div></div>';
-
   setView('客服数据', h);
-  renderCsRows();
 }
 function setCsChannel(org){ csChannel=org; renderCS(); }
-function renderCsRows(){
-  var sorted=csRecords.slice().sort(function(a,b){ return b.date<a.date?-1:1; });
-  var h='';
-  sorted.slice(0,200).forEach(function(r){
-    var s=csSum([r]);
-    h+='<tr><td>'+r.date+'</td><td>'+(r.org||'-')+'</td><td>'+r.staff+'</td><td>'+fmtDash(r.tot)+'</td><td>'+r.jt+'</td>'
-      +'<td>'+fmtJtr(s)+'</td><td>'+r.jw+'</td><td>'+fmtPct(s.jwr)+'</td><td>'+r.val+'</td><td>'+fmtPct(s.vr)+'</td>'
-      +'<td><button class="btn danger" style="padding:4px 10px;min-height:30px" onclick="delCs('+r.id+')">删除</button></td></tr>';
-  });
-  document.getElementById('csTbody').innerHTML = h || '<tr><td colspan="11" class="empty">暂无数据，请先录入</td></tr>';
-}
-function addCs(){
-  var g=function(id){return document.getElementById(id).value;};
-  var date=g('c_date'), org=g('c_org'), staff=g('c_staff');
-  var tot=+g('c_tot')||0, jt=+g('c_jt')||0, jw=+g('c_jw')||0, val=+g('c_val')||0;
-  if(!date){ alert('请选择日期'); return; }
-  if(tot+jt+jw+val===0){ alert('请至少填写一项数据'); return; }
-  var exist=csRecords.find(function(r){return r.date===date && r.org===org && r.staff===staff;});
-  if(exist){ exist.tot=tot; exist.jt=jt; exist.jw=jw; exist.val=val; }
-  else{
-    var nid=csRecords.reduce(function(m,r){return Math.max(m,r.id);},0)+1;
-    csRecords.push({id:nid,date:date,org:org,staff:staff,tot:tot,jt:jt,jw:jw,val:val});
-  }
-  saveCs(); renderCS();
-}
-function delCs(id){
-  csRecords=csRecords.filter(function(r){return r.id!==id;});
-  saveCs(); renderCsRows();
-}
-function clearCs(){
-  if(!confirm('⚠️ 将删除全部 '+csRecords.length+' 条客服数据，此操作不可恢复！确定继续吗？'))return;
-  csRecords=[]; saveCs(); renderCS();
-}
-
 /* ==================== 导入导出 ==================== */
 function exportJSON(){
   var blob=new Blob([JSON.stringify({records:records, cs:csRecords},null,2)],{type:'application/json'});
