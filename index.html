@@ -134,6 +134,34 @@
   .rank-bar i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,#1d6fe0,#0e9f9f);}
   .rank-num{width:110px;text-align:right;font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums;}
 
+  /* 客服漏斗汇总 - 卡片网格 */
+  .cs-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .cs-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:10px;transition:.15s;}
+  .cs-card:hover{box-shadow:0 4px 14px rgba(29,111,224,.12);transform:translateY(-1px);border-color:#c8dcff;}
+  .cs-card .cs-head{display:flex;justify-content:space-between;align-items:center;}
+  .cs-card .cs-name{font-size:16px;font-weight:700;}
+  .cs-card .cs-rank{width:24px;height:24px;border-radius:50%;background:#f0f3f8;color:var(--txt2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .cs-card.r1 .cs-rank{background:linear-gradient(135deg,#f7b500,#e64500);color:#fff;}
+  .cs-card.r2 .cs-rank{background:linear-gradient(135deg,#9aa7b8,#5b6b82);color:#fff;}
+  .cs-card.r3 .cs-rank{background:linear-gradient(135deg,#d08a4e,#8a4b1f);color:#fff;}
+  .cs-card .cs-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 6px;}
+  .cs-card .cs-m{text-align:center;}
+  .cs-card .cs-m .lab{font-size:11px;color:var(--txt2);}
+  .cs-card .cs-m .num{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px;}
+  .cs-card .cs-m .num.arr{color:var(--red);}
+  .cs-card .cs-m .num.cvrt{color:var(--red);font-size:15px;}
+  .cs-card .cs-bar{height:6px;background:#f0f3f8;border-radius:3px;overflow:hidden;display:flex;margin-top:2px;}
+  .cs-card .cs-bar i{height:100%;}
+  .cs-card .cs-bar .b-push{background:#1d6fe0;}
+  .cs-card .cs-bar .b-book{background:#e6a23c;}
+  .cs-card .cs-bar .b-arr{background:var(--red);}
+  .cs-card.total{background:linear-gradient(135deg,#f5f9ff,#fff);border-color:#c8dcff;}
+  .cs-card.total .cs-name{color:var(--blue);}
+
+  /* 分渠道客服数据 - 紧凑表格 */
+  .cs-table{table-layout:fixed;}
+  .cs-table th,.cs-table td{padding:9px 8px;}
+
   .empty{padding:60px 0;text-align:center;color:var(--txt2);}
   .placeholder{padding:80px 20px;text-align:center;color:var(--txt2);}
   .placeholder b{display:block;font-size:16px;color:var(--txt);margin-bottom:8px;}
@@ -176,6 +204,7 @@
     .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
     .chart-row{grid-template-columns:1fr;}
     .form-grid{grid-template-columns:repeat(2,1fr);gap:9px;}
+    .cs-grid{grid-template-columns:1fr;}
     .kpi .value{font-size:21px;}
     .kpi .label{font-size:11px;}
     .sec-title{margin:16px 0 8px;font-size:13px;}
@@ -190,6 +219,7 @@
   }
   @media (min-width:901px) and (max-width:1200px){
     .kpi-grid{grid-template-columns:repeat(3,1fr);}
+    .cs-grid{grid-template-columns:repeat(2,1fr);}
   }
 
 .dim{opacity:.5;text-decoration:line-through;}
@@ -1113,23 +1143,30 @@ function renderCS(){
   };
   var h='<div class="toolbar" style="margin-top:0">'+btn('day','当日')+btn('mon','当月')+btn('year','年度')+'</div>';
 
-  /* 汇总表：4 客服 + 合计（基于主漏斗 records，展示客服维度漏斗） */
-  h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服漏斗汇总 <span class="meta">总转化=到诊÷有效</span></div>'
-    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>客服</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th>'
-    +'</tr></thead><tbody>';
+  /* 汇总卡片：4 客服 + 合计（基于主漏斗 records，展示客服维度漏斗） */
   var rows=STAFF_ALL.map(function(st){
     return {st:st, s:sum(recList.filter(function(r){return r.staff===st;}))};
   }).sort(function(a,b){return b.s.val-a.s.val;});
-  rows.forEach(function(r){
-    h+='<tr><td>'+r.st+'</td><td>'+r.s.val.toLocaleString()+'</td>'
-      +'<td>'+r.s.push.toLocaleString()+'</td><td>'+r.s.book.toLocaleString()+'</td>'
-      +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(r.s)+'</td></tr>';
-  });
-  var T=sum(recList);
-  h+='</tbody><tfoot><tr><td>合计</td><td>'+T.val.toLocaleString()+'</td>'
-    +'<td>'+T.push.toLocaleString()+'</td><td>'+T.book.toLocaleString()+'</td>'
-    +'<td class="hl">'+T.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(T)+'</td></tr></tfoot></table></div></div>';
+  var csCard=function(r, idx, isTotal){
+    var rankCls = isTotal ? 'total' : (idx===0?'r1':idx===1?'r2':idx===2?'r3':'');
+    var arrPct = r.s.val ? Math.min(100, r.s.arr/r.s.val*100) : 0;
+    return '<div class="cs-card '+(rankCls||'')+'">'
+      +'<div class="cs-head"><span class="cs-name">'+(isTotal?'合计':r.st)+'</span>'+(isTotal?'':'<span class="cs-rank">'+(idx+1)+'</span>')+'</div>'
+      +'<div class="cs-metrics">'
+        +'<div class="cs-m"><div class="lab">有效</div><div class="num">'+r.s.val.toLocaleString()+'</div></div>'
+        +'<div class="cs-m"><div class="lab">推进</div><div class="num">'+r.s.push.toLocaleString()+'</div></div>'
+        +'<div class="cs-m"><div class="lab">预约</div><div class="num">'+r.s.book.toLocaleString()+'</div></div>'
+        +'<div class="cs-m"><div class="lab">到诊</div><div class="num arr">'+r.s.arr.toLocaleString()+'</div></div>'
+        +'<div class="cs-m"><div class="lab">总转化</div><div class="num cvrt">'+fmtCvrt(r.s)+'</div></div>'
+      +'</div>'
+      +'<div class="cs-bar"><i class="b-arr" style="width:'+arrPct+'%"></i></div>'
+    +'</div>';
+  };
+  h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服漏斗汇总 <span class="meta">总转化=到诊÷有效</span></div>'
+    +'<div class="cs-grid">';
+  rows.forEach(function(r, i){ h+=csCard(r, i, false); });
+  h+=csCard({s:sum(recList)}, rows.length, true);
+  h+='</div>';
 
   /* 分渠道查看：某渠道下 4 位客服的漏斗数据 */
   var cbtn=function(org){
@@ -1138,8 +1175,8 @@ function renderCS(){
   var chRecList=recList.filter(function(r){return r.org===csChannel;});
   h+='<div class="sec-title"><span class="dot"></span>'+label+' 分渠道客服数据 <span class="meta">当前渠道：'+csChannel+'</span></div>'
     +'<div class="toolbar" style="margin-top:0">'+ORGS.map(function(o){return cbtn(o);}).join('')+'</div>'
-    +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>客服</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th>'
+    +'<div class="panel" style="padding:12px 14px"><div class="table-wrap"><table class="cs-table"><thead><tr>'
+    +'<th style="width:20%;text-align:left">客服</th><th style="width:16%">有效</th><th style="width:16%">推进</th><th style="width:16%">预约</th><th style="width:16%">到诊</th><th style="width:16%">总转化</th>'
     +'</tr></thead><tbody>';
   var chRows=STAFF_ALL.map(function(st){
     return {st:st, s:sum(chRecList.filter(function(r){return r.staff===st;}))};
