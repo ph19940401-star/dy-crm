@@ -110,6 +110,8 @@
   tbody tr:hover{background:#f4f8ff;}
   tfoot td{font-weight:700;background:#f7f9fc;}
   .hl{color:var(--blue);font-weight:700;}
+  .hl.c-red{color:var(--red);}
+  .hl.c-green{color:var(--green);}
 
   /* 数据管理 */
   .form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end;}
@@ -136,6 +138,22 @@
 
   /* 客服数据表格统一样式 */
   .cs-table{table-layout:fixed;width:100%;}
+
+  /* 转化漏斗分析 */
+  .funnel{max-width:780px;margin:0 auto;}
+  .fn-row{display:flex;align-items:center;gap:12px;}
+  .fn-name{width:52px;flex-shrink:0;text-align:right;font-weight:700;font-size:14px;color:var(--txt);}
+  .fn-track{flex:1;height:52px;background:#f0f3f8;border-radius:9px;overflow:hidden;display:flex;align-items:center;}
+  .fn-fill{height:100%;width:0;display:flex;align-items:center;justify-content:flex-end;padding-right:14px;color:#fff;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;transition:width .7s cubic-bezier(.22,1,.36,1);white-space:nowrap;}
+  .fn-val{width:64px;flex-shrink:0;text-align:right;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;}
+  .fn-pct{width:62px;flex-shrink:0;text-align:right;color:var(--txt2);font-size:13px;font-variant-numeric:tabular-nums;}
+  .fn-conn{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;padding:9px 0;font-size:12.5px;color:var(--txt2);}
+  .fn-conn .conv{color:var(--blue);font-weight:700;}
+  .fn-conn .loss{color:#c0392b;font-weight:700;}
+  .fn-summary{margin-top:18px;background:linear-gradient(135deg,#fff7f4,#fff);border:1px solid #ffd9cc;border-radius:12px;padding:14px 18px;}
+  .fn-summary .ttl{font-size:13px;color:#e64500;font-weight:700;margin-bottom:6px;}
+  .fn-summary p{margin:5px 0;font-size:13.5px;color:var(--txt);line-height:1.65;}
+  .fn-summary b{color:var(--red);}
 
   .empty{padding:60px 0;text-align:center;color:var(--txt2);}
   .placeholder{padding:80px 20px;text-align:center;color:var(--txt2);}
@@ -241,6 +259,7 @@
   </div>
 </div>
 
+<script src="data.js"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -276,6 +295,34 @@ function splitByStaff(row, rnd){
     rows.push(r2);
   });
   return rows;
+}
+
+/* 本地优先数据源：双击打开 HTML 时自动加载同目录 data.js，覆盖浏览器本地缓存（无需联网）。
+   只要工作区根目录的 data.js 比已应用版本更新，就自动生效，用户零点击。 */
+function showSeedToast(v){
+  try{
+    var d=document.createElement('div');
+    d.textContent='已自动加载最新数据（'+v+'），无需联网';
+    d.style.cssText='position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#1d6fe0;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:99999;opacity:0;transition:opacity .4s;';
+    document.body.appendChild(d);
+    requestAnimationFrame(function(){ d.style.opacity='1'; });
+    setTimeout(function(){ d.style.opacity='0'; setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 400); }, 3000);
+  }catch(e){}
+}
+function applySeedIfNewer(){
+  try{
+    if(typeof window.__DY_SEED__==='undefined' || !window.__DY_SEED__ || !window.__DY_SEED__.v) return false;
+    if(localStorage.getItem('__DY_SEED_VER__')===window.__DY_SEED__.v) return false;
+    if(window.__DY_SEED__.records && window.__DY_SEED__.records.length){
+      localStorage.setItem(LS_KEY, JSON.stringify(window.__DY_SEED__.records));
+    }
+    if(window.__DY_SEED__.cs && window.__DY_SEED__.cs.length){
+      localStorage.setItem(CS_LS, JSON.stringify(window.__DY_SEED__.cs));
+    }
+    localStorage.setItem('__DY_SEED_VER__', window.__DY_SEED__.v);
+    showSeedToast(window.__DY_SEED__.v);
+    return true;
+  }catch(e){ return false; }
 }
 
 function loadData(){
@@ -326,6 +373,7 @@ function loadData(){
 /* 从云端数据源拉取最新数据（公开读取地址，无需密钥）；失败则保留本地缓存/示例 */
 async function pullCloud(){
   if(!DATA_URL || DATA_URL.indexOf('__GIST__')===0) return;
+  if(localStorage.getItem('__DY_SEED_VER__')) return; /* 已用本地 data.js，避免云端旧数据回灌 */
   try{
     var url = DATA_URL + (DATA_URL.indexOf('?')>=0 ? '&' : '?') + 't=' + Date.now();
     var res = await fetch(url, {cache:'no-store'});
@@ -934,7 +982,7 @@ function clearAssets(){
 }
 
 /* ==================== 视图：盈亏分析 ==================== */
-var profitPeriod = 'mon'; // day | mon | year
+var profitPeriod = 'mon'; // mon | year
 function setProfitPeriod(p){ profitPeriod=p; renderProfit(); }
 
 function fmtMoney(n){
@@ -947,69 +995,63 @@ function profitKpi(label, value, cls){
 function renderProfit(){
   var ld=latestDate(), month=ld.slice(0,7), year=ld.slice(0,4);
   var label, list;
-  var daysInMonth = new Date(+year, +month.slice(5,7), 0).getDate();
+
   var staffCount = STAFF.length;
   var perCost;
-  if(profitPeriod==='day'){
-    label='当日（'+ld+'）'; list=records.filter(function(r){return r.date===ld;});
-    perCost = 10000 / daysInMonth;
-  }else if(profitPeriod==='mon'){
+  if(profitPeriod==='mon'){
     label='当月（'+month+'）'; list=records.filter(function(r){return r.date.slice(0,7)===month;});
     perCost = 10000;
   }else{
     label='年度（'+year+'）'; list=records.filter(function(r){return r.date.slice(0,4)===year;});
-    perCost = 120000;
+    perCost = 10000 * (+month.slice(5,7));   // 按当年已过月份累计：8月=8万/人
   }
   var totalCost = perCost * staffCount;
 
-  function calc(arr){
-    var s = sum(arr);
-    var income = s.arr * 2150;
-    var cost = totalCost;        // 团队固定成本
+  function calc(arr, cost){
+    var local=0, push=0;
+    arr.forEach(function(r){ local+=(r.arr_local||0); push+=(r.arr_push||0); });
+    var income = local*2100 + push*1050;     // 本点¥2100/个 · 推出¥1050/个
     var profit = income - cost;
     return {
-      arr: s.arr,
-      income: income,
-      cost: cost,
-      profit: profit,
-      margin: income? profit/income*100 : (profit? -100 : 0),
-      perArr: staffCount? s.arr/staffCount : 0,
-      perIncome: staffCount? income/staffCount : 0,
-      perProfit: staffCount? profit/staffCount : 0
+      local: local, push: push, arr: local+push,
+      income: income, cost: cost, profit: profit,
+      margin: income? profit/income*100 : (profit? -100 : 0)
     };
   }
 
-  var T = calc(list);
+  var T = calc(list, totalCost);   // 团队：成本=全员固定成本
   var pbtn=function(p,n){ return '<button class="btn'+(profitPeriod===p?' primary':'')+'" onclick="setProfitPeriod(\''+p+'\')">'+n+'</button>'; };
 
   var h='<div class="toolbar" style="margin:0 0 14px 0">'+pbtn('mon','当月')+pbtn('year','年度')+'</div>';
 
-  h+='<div class="sec-title"><span class="dot"></span>团队盈亏总览 <span class="meta">'+label+' · 收入=到诊×¥2150 · 成本='+staffCount+'人×¥'+fmtMoney(perCost)+'</span></div>'
+  h+='<div class="sec-title"><span class="dot"></span>团队盈亏总览 <span class="meta">'+label+' · 本点¥2100/个 · 推出¥1050/个 · 成本='+staffCount+'人×¥'+fmtMoney(perCost)+'</span></div>'
     +'<div class="kpi-grid">'
-    +profitKpi('到诊数', T.arr.toLocaleString()+'<small>人</small>', 'c-red')
-    +profitKpi('收入', '¥'+fmtMoney(T.income), 'c-blue')
-    +profitKpi('成本', '¥'+fmtMoney(T.cost), 'c-orange')
-    +profitKpi('人效', '¥'+fmtMoney(T.perProfit), T.profit>=0?'c-green':'c-red')
+    +profitKpi('本点到诊', T.local.toLocaleString()+'<small>人</small>', 'c-blue')
+    +profitKpi('推出到诊', T.push.toLocaleString()+'<small>人</small>', 'c-orange')
+    +profitKpi('总收入', '¥'+fmtMoney(T.income), 'c-red')
+    +profitKpi('成本', '¥'+fmtMoney(T.cost)+'<small> 固定</small>', 'c-green')
+    +profitKpi('人效合计', '¥'+fmtMoney(T.profit), T.profit>=0?'c-red':'c-green')
+    +profitKpi('人均生产力', '¥'+fmtMoney(T.profit / staffCount), T.profit>=0?'c-red':'c-green')
     +'</div>';
 
-  h+='<div class="sec-title"><span class="dot blue"></span>客服盈亏明细 <span class="meta">按人效排序 · 人效=该客服利润</span></div>'
+  h+='<div class="sec-title"><span class="dot blue"></span>客服盈亏明细 <span class="meta">按人效排序 · 人效=该客服收入−¥'+fmtMoney(perCost)+'</span></div>'
     +'<div class="panel"><div class="table-wrap"><table><thead><tr>'
-    +'<th>客服</th><th>到诊</th><th>收入</th><th>成本分摊</th><th>人效</th>'
+    +'<th>客服</th><th>本点到诊</th><th>推出到诊</th><th>收入</th><th>成本分摊</th><th>人效</th>'
     +'</tr></thead><tbody>';
 
   var rows=STAFF.map(function(st){
-    var r=calc(list.filter(function(r){return r.staff===st;}));
+    var r=calc(list.filter(function(r){return r.staff===st;}), perCost);  // 每人：成本=1万/人
     r.staff=st; return r;
-  }).sort(function(a,b){return b.perProfit-a.perProfit;});
+  }).sort(function(a,b){return b.profit-a.profit;});
 
   rows.forEach(function(r){
-    var profCls = r.profit>=0?'hl':'';
-    h+='<tr><td>'+r.staff+'</td><td>'+r.arr+'</td><td>¥'+fmtMoney(r.income)+'</td>'
-      +'<td>¥'+fmtMoney(perCost)+'</td><td class="'+profCls+'">¥'+fmtMoney(r.perProfit)+'</td></tr>';
+    var profCls = r.profit>=0?'hl c-red':'hl c-green';
+    h+='<tr><td>'+r.staff+'</td><td>'+r.local+'</td><td>'+r.push+'</td><td>¥'+fmtMoney(r.income)+'</td>'
+      +'<td>¥'+fmtMoney(r.cost)+'</td><td class="'+profCls+'">¥'+fmtMoney(r.profit)+'</td></tr>';
   });
 
-  h+='</tbody><tfoot><tr><td>团队合计</td><td>'+T.arr+'</td><td>¥'+fmtMoney(T.income)+'</td>'
-    +'<td>¥'+fmtMoney(T.cost)+'</td><td class="hl">¥'+fmtMoney(T.perProfit)+'</td></tr></tfoot></table></div></div>';
+  h+='</tbody><tfoot><tr><td>团队合计</td><td>'+T.local+'</td><td>'+T.push+'</td><td>¥'+fmtMoney(T.income)+'</td>'
+    +'<td>¥'+fmtMoney(T.cost)+'</td><td class="hl '+(T.profit>=0?'c-red':'c-green')+'">¥'+fmtMoney(T.profit)+'</td></tr></tfoot></table></div></div>';
 
   setView('盈亏分析', h);
 }
@@ -1160,6 +1202,144 @@ function renderCS(){
   setView('客服数据', h);
 }
 function setCsChannel(org){ csChannel=org; renderCS(); }
+
+/* ==================== 视图：转化漏斗 ==================== */
+var funnelPeriod='mon';
+function setFunnelPeriod(p){ funnelPeriod=p; renderFunnel(); }
+function renderFunnel(){
+  var ld=latestDate(), month=ld.slice(0,7), year=ld.slice(0,4);
+  var label, list;
+  if(funnelPeriod==='day'){ label='当日（'+ld+'）'; list=records.filter(function(r){return r.date===ld;}); }
+  else if(funnelPeriod==='mon'){ label='当月（'+month+'）'; list=records.filter(function(r){return r.date.slice(0,7)===month;}); }
+  else { label='年度（'+year+'）'; list=records.filter(function(r){return r.date.slice(0,4)===year;}); }
+
+  var s=sum(list);
+  var stages=[
+    {key:'val',  name:'有效', color:'#1d6fe0'},
+    {key:'push', name:'推进', color:'#0e9f9f'},
+    {key:'book', name:'预约', color:'#e6a23c'},
+    {key:'arr',  name:'到诊', color:'#e64500'}
+  ];
+  var maxV=s.val||1;
+  var btn=function(p,t){ return '<button class="btn'+(funnelPeriod===p?' primary':'')+'" onclick="setFunnelPeriod(\''+p+'\')">'+t+'</button>'; };
+
+  var h='<div class="toolbar" style="margin-top:0">'+btn('day','当日')+btn('mon','当月')+btn('year','年度')+'</div>';
+  h+='<div class="sec-title"><span class="dot"></span>'+label+' 转化漏斗 <span class="meta">转化=到诊÷有效</span></div>';
+  h+='<div class="panel"><div class="funnel">';
+  stages.forEach(function(st, i){
+    var v=s[st.key];
+    var w=Math.max(8, Math.round(v/maxV*100));
+    h+='<div class="fn-row"><div class="fn-name">'+st.name+'</div>'
+      +'<div class="fn-track"><div class="fn-fill" data-w="'+w+'%" style="background:'+st.color+'">'+v.toLocaleString()+'</div></div>'
+      +'<div class="fn-val">'+v.toLocaleString()+'</div>'
+      +'<div class="fn-pct">'+(i===0?'100%':(s.val?Math.round(v/s.val*100)+'%':'—'))+'</div></div>';
+    if(i<stages.length-1){
+      var nx=s[stages[i+1].key];
+      var conv=v?(nx/v*100):0;
+      var loss=v-nx;
+      h+='<div class="fn-conn"><span>'+st.name+' → '+stages[i+1].name+' 转化 <span class="conv">'+conv.toFixed(1)+'%</span></span>'
+        +'<span class="loss">流失 '+loss.toLocaleString()+'（'+((v?loss/v*100:0).toFixed(1))+'%）</span></div>';
+    }
+  });
+  h+='</div></div>';
+
+  /* 关键结论（先结论后证据） */
+  var overall=s.val?(s.arr/s.val*100):0;
+  var lostEff=s.val-s.push, lostPush=s.push-s.book, lostBook=s.book-s.arr;
+  h+='<div class="fn-summary"><div class="ttl">关键结论</div>';
+  h+='<p>整体转化（到诊÷有效）仅 <b>'+overall.toFixed(2)+'%</b>，即每 100 个有效线索最终约 <b>'+(s.val?(s.arr/s.val*100).toFixed(1):'0')+'</b> 个到诊。</p>';
+  if(s.val>0){
+    var segs=[['有效→推进',lostEff],['推进→预约',lostPush],['预约→到诊',lostBook]];
+    segs.sort(function(a,b){return b[1]-a[1];});
+    h+='<p>最大流失发生在 <b>'+segs[0][0]+'</b> 环节，流失 <b>'+segs[0][1].toLocaleString()+'</b> 人，是优先优化点。</p>';
+  }
+  h+='<p>预约→到诊 到院率 <b>'+(s.book?(s.arr/s.book*100).toFixed(1):'0')+'%</b>，已预约客户仍有提升空间（回访/提醒可挽回）。</p>';
+  h+='</div>';
+
+  setView('转化漏斗', h);
+  requestAnimationFrame(function(){
+    document.querySelectorAll('.fn-fill').forEach(function(el){ el.style.width=el.dataset.w; });
+  });
+}
+
+/* ==================== 视图：客服深度绩效 ==================== */
+var perfPeriod='mon';
+function setPerfPeriod(p){ perfPeriod=p; renderStaffPerf(); }
+function renderStaffPerf(){
+  var ld=latestDate(), month=ld.slice(0,7), year=ld.slice(0,4);
+  var label, list;
+  if(perfPeriod==='day'){ label='当日（'+ld+'）'; list=records.filter(function(r){return r.date===ld;}); }
+  else if(perfPeriod==='mon'){ label='当月（'+month+'）'; list=records.filter(function(r){return r.date.slice(0,7)===month;}); }
+  else { label='年度（'+year+'）'; list=records.filter(function(r){return r.date.slice(0,4)===year;}); }
+
+  var btn=function(p,t){ return '<button class="btn'+(perfPeriod===p?' primary':'')+'" onclick="setPerfPeriod(\''+p+'\')">'+t+'</button>'; };
+  function rate(a,b){ return a? b/a*100 : 0; }
+
+  var rows=STAFF_ALL.map(function(st){
+    var s=sum(list.filter(function(r){return r.staff===st;}));
+    var mon=list.filter(function(r){return r.staff===st;});
+    var ch=ORGS.map(function(o){ return {org:o, s:sum(mon.filter(function(r){return r.org===o;}))}; })
+      .filter(function(r){return r.s.arr>0 || r.s.val>0;})
+      .sort(function(a,b){ return (b.s.arr - a.s.arr) || (b.s.val - a.s.val); });
+    return {st:st, s:s, fav: ch.length? ch[0] : null};
+  });
+  var T=sum(list);
+  rows.forEach(function(r){ r.share = T.arr ? r.s.arr/T.arr*100 : 0; });
+  rows.sort(function(a,b){ return b.s.arr - a.s.arr; });
+
+  var h='<div class="toolbar" style="margin-top:0">'+btn('day','当日')+btn('mon','当月')+btn('year','年度')+'</div>';
+  h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服深度绩效 <span class="meta">总转化=到诊÷有效 · 诊断每位客服的漏斗短板</span></div>';
+  h+='<div class="panel"><div class="table-wrap"><table class="cs-table"><colgroup>'
+    +'<col style="width:13%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:9%">'
+    +'</colgroup><thead><tr>'
+    +'<th>客服</th><th>有效</th><th>推进</th><th>推进率</th><th>预约</th><th>预约率</th><th>到诊</th><th>到院率</th><th>总转化</th><th>擅长渠道</th><th>到诊占比</th>'
+    +'</tr></thead><tbody>';
+  rows.forEach(function(r){
+    var s=r.s;
+    var pr=rate(s.val,s.push), br=rate(s.push,s.book), ar=rate(s.book,s.arr);
+    var favTxt = r.fav ? (r.fav.org + (r.fav.s.arr>0 ? '（到诊'+r.fav.s.arr+'）' : '（有效'+r.fav.s.val+'）')) : '—';
+    h+='<tr><td><b>'+r.st+'</b></td>'
+      +'<td>'+s.val.toLocaleString()+'</td>'
+      +'<td>'+s.push.toLocaleString()+'</td>'
+      +'<td>'+fmtPct(pr)+'</td>'
+      +'<td>'+s.book.toLocaleString()+'</td>'
+      +'<td>'+fmtPct(br)+'</td>'
+      +'<td class="hl">'+s.arr.toLocaleString()+'</td>'
+      +'<td>'+fmtPct(ar)+'</td>'
+      +'<td class="hl">'+fmtCvrt(s)+'</td>'
+      +'<td>'+favTxt+'</td>'
+      +'<td>'+r.share.toFixed(1)+'%</td></tr>';
+  });
+  var Tpr=rate(T.val,T.push), Tbr=rate(T.push,T.book), Tar=rate(T.book,T.arr);
+  h+='</tbody><tfoot><tr><td><b>团队</b></td>'
+    +'<td>'+T.val.toLocaleString()+'</td>'
+    +'<td>'+T.push.toLocaleString()+'</td>'
+    +'<td>'+fmtPct(Tpr)+'</td>'
+    +'<td>'+T.book.toLocaleString()+'</td>'
+    +'<td>'+fmtPct(Tbr)+'</td>'
+    +'<td class="hl">'+T.arr.toLocaleString()+'</td>'
+    +'<td>'+fmtPct(Tar)+'</td>'
+    +'<td class="hl">'+fmtCvrt(T)+'</td>'
+    +'<td>—</td>'
+    +'<td>100%</td></tr></tfoot></table></div></div>';
+
+  /* 关键结论（先结论后证据） */
+  var best=rows.slice().sort(function(a,b){return b.s.cvrt-a.s.cvrt;})[0];
+  var segs=[['推进率',Tpr],['预约率',Tbr],['到院率',Tar]];
+  segs.sort(function(a,b){return a[1]-b[1];});
+  var weak=segs[0];
+  var top=rows.slice().sort(function(a,b){return b.share-a.share;})[0];
+  h+='<div class="fn-summary"><div class="ttl">关键结论</div>';
+  h+='<p>转化率冠军：<b>'+best.st+'</b>，总转化 <b>'+fmtCvrt(best.s)+'</b>（到诊÷有效），其话术与跟进节奏可作为团队 SOP 标杆。</p>';
+  h+='<p>团队整体最大短板在 <b>'+weak[0]+'</b>（仅 <b>'+weak[1].toFixed(1)+'%</b>），是培训与流程优化的优先环节。</p>';
+  if(T.arr>0){
+    h+='<p>到诊贡献最集中：<b>'+top.st+'</b> 占团队到诊 <b>'+top.share.toFixed(1)+'%</b>，其工作状态直接影响整体业绩，需重点保障。</p>';
+  }
+  h+='</div>';
+
+  setView('客服绩效', h);
+}
+
 /* ==================== 导入导出 ==================== */
 function exportJSON(){
   var blob=new Blob([JSON.stringify({records:records, cs:csRecords},null,2)],{type:'application/json'});
@@ -1206,7 +1386,9 @@ var NAV=[
   {id:'dash',  name:'仪表盘',  icon:'M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z'},
   {id:'cs',    name:'客服数据',icon:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10Z'},
   {id:'rank',  name:'龙虎榜单',icon:'M8 21h8m-4-4v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4a1 1 0 0 0-1 1c0 2.2 1.8 4 4 4m10-6h3a1 1 0 0 1 1 1c0 2.2-1.8 4-4 4'},
+  {id:'staffperf',name:'客服绩效',icon:'m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z'},
   {id:'year',  name:'年度数据',icon:'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z'},
+  {id:'funnel',name:'转化漏斗',icon:'M22 3H2l8 9.5V19l4 2v-8.5L22 3Z'},
   {id:'ops',   name:'固定资产',icon:'M3 3v18h18M7 15l4-6 4 3 5-8'},
   {id:'ana',   name:'盈亏分析',icon:'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7'},
   {id:'acct',  name:'账号管理',icon:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m12-14a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z'}
@@ -1228,7 +1410,9 @@ function route(){
   if(cur==='dash') renderDashboard();
   else if(cur==='rank') renderRank();
   else if(cur==='cs') renderCS();
+  else if(cur==='staffperf') renderStaffPerf();
   else if(cur==='year') renderYear();
+  else if(cur==='funnel') renderFunnel();
   else if(cur==='ops') renderAssets();
   else if(cur==='ana') renderProfit();
   else{
@@ -1313,6 +1497,7 @@ function tick(){
 }
 setInterval(tick,1000); tick();
 
+applySeedIfNewer();
 loadData(); loadCs(); loadAssets(); route(); pullCloud();
 
 /* PWA：注册 Service Worker（仅在 http/https 下，file:// 直接跳过） */
