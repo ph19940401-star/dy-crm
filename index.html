@@ -982,7 +982,7 @@ function clearAssets(){
 }
 
 /* ==================== 视图：盈亏分析（产值口径：本点¥2100/个 · 推出¥1050/个，不单列成本） ==================== */
-var profitPeriod = 'mon'; // day | mon | year
+var profitPeriod = 'mon'; // mon | year
 function setProfitPeriod(p){ profitPeriod=p; renderProfit(); }
 
 function fmtMoney(n){
@@ -995,9 +995,7 @@ function profitKpi(label, value, cls){
 function renderProfit(){
   var ld=latestDate(), month=ld.slice(0,7), year=ld.slice(0,4);
   var label, list;
-  if(profitPeriod==='day'){
-    label='当日（'+ld+'）'; list=records.filter(function(r){return r.date===ld;});
-  }else if(profitPeriod==='mon'){
+  if(profitPeriod==='mon'){
     label='当月（'+month+'）'; list=records.filter(function(r){return r.date.slice(0,7)===month;});
   }else{
     label='年度（'+year+'）'; list=records.filter(function(r){return r.date.slice(0,4)===year;});
@@ -1019,7 +1017,7 @@ function renderProfit(){
       +'<span style="display:inline-block;width:'+w+'%;height:8px;background:'+color+';border-radius:4px"></span></span>';
   };
 
-  var h='<div class="toolbar" style="margin:0 0 14px 0">'+pbtn('day','当日')+pbtn('mon','当月')+pbtn('year','年度')+'</div>';
+  var h='<div class="toolbar" style="margin:0 0 14px 0">'+pbtn('mon','当月')+pbtn('year','年度')+'</div>';
 
   h+='<div class="sec-title"><span class="dot"></span>团队盈亏总览 <span class="meta">'+label+' · 产值=本点×¥2100 + 推出×¥1050</span></div>'
     +'<div class="kpi-grid">'
