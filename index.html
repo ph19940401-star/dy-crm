@@ -982,8 +982,8 @@ function clearAssets(){
 }
 
 /* ==================== 视图：盈亏分析 ==================== */
-var profitPeriod = 'mon'; // mon | year
-function setProfitPeriod(p){ profitPeriod=p; renderProfit(); }
+var profitScope = 'mon'; // 'mon' 最新月 | 'year' 年度 | 'YYYY-MM' 具体月
+function setProfitScope(s){ profitScope=s; renderProfit(); }
 
 function fmtMoney(n){
   return n.toLocaleString('zh-CN',{maximumFractionDigits:0});
@@ -998,12 +998,19 @@ function renderProfit(){
 
   var staffCount = STAFF.length;
   var perCost;
-  if(profitPeriod==='mon'){
-    label='当月（'+month+'）'; list=records.filter(function(r){return r.date.slice(0,7)===month;});
-    perCost = 10000;
-  }else{
+  // 有数据的月份（升序），用于动态生成月份按钮
+  var months=[];
+  records.forEach(function(r){ var m=r.date.slice(0,7); if(months.indexOf(m)<0) months.push(m); });
+  months.sort();
+
+  if(profitScope==='year'){
     label='年度（'+year+'）'; list=records.filter(function(r){return r.date.slice(0,4)===year;});
     perCost = 10000 * (+month.slice(5,7));   // 按当年已过月份累计：8月=8万/人
+  }else{
+    var m = (profitScope==='mon') ? month : profitScope;   // 'mon'=最新月；否则为具体月份
+    label = (m===month) ? '当月（'+month+'）' : m.slice(5,7)+' 月';
+    list = records.filter(function(r){return r.date.slice(0,7)===m;});
+    perCost = 10000;   // 单月口径：固定 1万/人/月
   }
   var totalCost = perCost * staffCount;
 
@@ -1020,9 +1027,13 @@ function renderProfit(){
   }
 
   var T = calc(list, totalCost);   // 团队：成本=全员固定成本
-  var pbtn=function(p,n){ return '<button class="btn'+(profitPeriod===p?' primary':'')+'" onclick="setProfitPeriod(\''+p+'\')">'+n+'</button>'; };
-
-  var h='<div class="toolbar" style="margin:0 0 14px 0">'+pbtn('mon','当月')+pbtn('year','年度')+'</div>';
+  var pbtn=function(s,n,active){ return '<button class="btn'+(active?' primary':'')+'" onclick="setProfitScope(\''+s+'\')">'+n+'</button>'; };
+  var h='<div class="toolbar" style="margin:0 0 14px 0">';
+  months.forEach(function(m){
+    var active = (profitScope===m) || (profitScope==='mon' && m===month);
+    h += pbtn(m, (+m.slice(5,7))+'月', active);
+  });
+  h += pbtn('year','年度', profitScope==='year') + '</div>';
 
   h+='<div class="sec-title"><span class="dot"></span>团队盈亏总览 <span class="meta">'+label+' · 本点¥2100/个 · 推出¥1050/个 · 成本='+staffCount+'人×¥'+fmtMoney(perCost)+'</span></div>'
     +'<div class="kpi-grid">'
