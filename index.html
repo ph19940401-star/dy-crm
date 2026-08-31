@@ -83,8 +83,36 @@
   .kpi .label .arrow{width:14px;height:14px;opacity:.4;}
   .kpi .value{font-size:24px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:.5px;}
   .kpi .value small{font-size:13px;font-weight:500;color:var(--txt2);margin-left:2px;}
+  .kpi .delta{font-size:11px;margin-top:5px;font-weight:600;line-height:1.2;}
+  .kpi .delta.up{color:var(--green);}
+  .kpi .delta.down{color:var(--red);}
+  .kpi .delta.flat{color:var(--txt2);}
   .c-blue{color:var(--blue);} .c-red{color:var(--red);} .c-green{color:var(--green);}
   .c-orange{color:var(--orange);} .c-teal{color:var(--teal);} .c-dark{color:var(--txt);}
+
+  /* 数据新鲜度健康条 */
+  .health-bar{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;font-size:13px;}
+  .health-bar .hb-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .health-bar .hb-dot.ok{background:var(--green);}
+  .health-bar .hb-dot.warn{background:var(--orange);}
+  .health-bar .hb-dot.bad{background:var(--red);}
+  .health-bar .hb-txt{color:var(--txt);}
+  .health-bar .hb-txt b{font-weight:700;}
+  .health-bar .hb-txt.warn{color:#946200;}
+  .health-bar .hb-txt.bad{color:var(--red);}
+  .health-bar .hb-tag{margin-left:auto;font-size:12px;color:var(--txt2);white-space:nowrap;}
+
+  /* 月度目标达成 */
+  .goal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:4px;}
+  .goal{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;}
+  .goal-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
+  .goal-name{font-size:13px;font-weight:700;}
+  .goal-num{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .goal-num small{font-size:12px;color:var(--txt2);font-weight:500;}
+  .goal-track{height:9px;background:#f0f3f8;border-radius:5px;overflow:hidden;}
+  .goal-fill{height:100%;border-radius:5px;transition:width .7s cubic-bezier(.22,1,.36,1);}
+  .goal-foot{display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);margin-top:7px;}
+  .goal-foot .ok{color:var(--green);font-weight:700;}
 
   /* 图表区 */
   .chart-row{display:grid;grid-template-columns:1.25fr 1fr;gap:12px;margin-top:12px;}
@@ -195,6 +223,7 @@
 
     /* 栅格与组件适配 */
     .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .goal-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
     .chart-row{grid-template-columns:1fr;}
     .form-grid{grid-template-columns:repeat(2,1fr);gap:9px;}
     .kpi .value{font-size:21px;}
@@ -211,6 +240,7 @@
   }
   @media (min-width:901px) and (max-width:1200px){
     .kpi-grid{grid-template-columns:repeat(3,1fr);}
+    .goal-grid{grid-template-columns:repeat(2,1fr);}
   }
 
 .dim{opacity:.5;text-decoration:line-through;}
@@ -259,7 +289,7 @@
   </div>
 </div>
 
-<script src="data.js?v=2026082901"></script>
+<script src="data.js?v=2026083101"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -569,39 +599,110 @@ function flipQuote(){
   txt.classList.remove('q-anim'); void txt.offsetWidth; txt.classList.add('q-anim');
 }
 
+/* 月度目标（可在此处修改；进度条按「当月实际 ÷ 目标」计算） */
+var MONTH_TARGET = { val:1000, push:700, book:300, arr:200 };
+
+function prevDay(dateStr){
+  var d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()-1);
+  var p=function(n){return ('0'+n).slice(-2);};
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+}
+function prevMonthStr(month){
+  var y=+month.slice(0,4), m=+month.slice(5,7)-1;
+  if(m===0){ m=12; y--; }
+  return y+'-'+('0'+m).slice(-2);
+}
+function daysGap(a,b){
+  var d1=new Date(a+'T00:00:00'), d2=new Date(b+'T00:00:00');
+  return Math.round((d2-d1)/86400000);
+}
+/* 环比提示：cur 当前值，prev 对比值；kind='num' 数值差+百分比 | 'pp' 百分点差 */
+function deltaTxt(cur, prev, prefix, kind){
+  var d = cur - prev;
+  if(kind==='pp'){
+    if(prev===0) return null;
+    var s = d>0?'+':(d<0?'':'');
+    return {txt: prefix+' '+(s+d.toFixed(1))+'pp', cls: d>0?'up':(d<0?'down':'flat')};
+  }
+  if(prev===0 && cur===0) return null;
+  if(prev===0) return {txt: prefix+' +'+cur, cls: cur>0?'up':'flat'};
+  var pct = d/prev*100;
+  var sign = d>0?'+':'';
+  return {txt: prefix+' '+sign+d+'（'+sign+pct.toFixed(0)+'%）', cls: d>0?'up':(d<0?'down':'flat')};
+}
+/* 数据新鲜度健康条 */
+function healthBar(ld, today){
+  var gap = daysGap(ld, today);
+  var dot, txt, tag, cls='';
+  if(gap<=0){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（今天）'; tag='实时'; }
+  else if(gap===1){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（昨天）'; tag='较新'; }
+  else if(gap<=3){ dot='warn'; cls='warn'; txt='数据最新更新至 <b>'+ld+'</b>，已过去 <b>'+gap+'</b> 天'; tag='留意补录'; }
+  else { dot='bad'; cls='bad'; txt='数据最新更新至 <b>'+ld+'</b>，已断更 <b>'+gap+'</b> 天，请及时补录'; tag='需更新'; }
+  return '<div class="health-bar"><span class="hb-dot '+dot+'"></span><span class="hb-txt '+cls+'">'+txt+'</span><span class="hb-tag">'+tag+'</span></div>';
+}
+/* 月度目标达成进度条 */
+function targetBar(M, month){
+  var items=[
+    {name:'有效', color:'#1d6fe0', tgt:MONTH_TARGET.val,  cur:M.val},
+    {name:'推进', color:'#0e9f9f', tgt:MONTH_TARGET.push, cur:M.push},
+    {name:'预约', color:'#e6a23c', tgt:MONTH_TARGET.book, cur:M.book},
+    {name:'到诊', color:'#e64500', tgt:MONTH_TARGET.arr,  cur:M.arr}
+  ];
+  var h='<div class="sec-title"><span class="dot blue"></span>本月目标达成 <span class="meta">'+month+' · 目标值可在代码 MONTH_TARGET 中调整</span></div>';
+  h+='<div class="goal-grid">';
+  items.forEach(function(it){
+    var pct = it.tgt ? Math.min(100, it.cur/it.tgt*100) : 0;
+    var remain = it.tgt - it.cur;
+    var foot = remain>0 ? '距目标差 '+remain.toLocaleString() : '<span class="ok">已达成 ✓</span>';
+    h+='<div class="goal">'
+      +'<div class="goal-head"><span class="goal-name">'+it.name+'</span><span class="goal-num">'+it.cur.toLocaleString()+'<small> / '+it.tgt.toLocaleString()+'</small></span></div>'
+      +'<div class="goal-track"><div class="goal-fill" style="width:'+pct.toFixed(1)+'%;background:'+it.color+'"></div></div>'
+      +'<div class="goal-foot"><span>'+pct.toFixed(1)+'%</span><span>'+foot+'</span></div>'
+      +'</div>';
+  });
+  h+='</div>';
+  return h;
+}
+
 function renderDashboard(){
   var ld = latestDate();
   var month = ld.slice(0,7);
+  var today = todayStr();
   var dayList  = records.filter(function(r){return r.date===ld;});
   var monList  = records.filter(function(r){return r.date.slice(0,7)===month;});
   var D = sum(dayList), M = sum(monList);
   var daysInMonth = new Date(+month.slice(0,4), +month.slice(5,7), 0).getDate();
 
-  var q=dailyQuote();
+  /* 环比：昨日 / 上月 */
+  var yday = prevDay(ld);
+  var YD = sum(records.filter(function(r){return r.date===yday;}));
+  var pm = prevMonthStr(month);
+  var PM = sum(records.filter(function(r){return r.date.slice(0,7)===pm;}));
+
   var html = '';
-  /* 每日一言横幅 */
-  html += '<div class="quote-banner">'
-    + '<div class="q-text">'+q.t+'</div>'
-    + '<div class="q-meta"><div class="q-src">'+q.s+'</div><div class="q-flip" onclick="flipQuote()">换一句 ↻</div></div>'
-    + '</div>';
-  /* 当日汇总 */
+  /* 数据新鲜度健康条 */
+  html += healthBar(ld, today);
+  /* 本月目标达成 */
+  html += targetBar(M, month);
+
+  /* 当日汇总（含环比） */
   html += '<div class="sec-title"><span class="dot"></span>当日汇总 <span class="meta">'+ld+'（最新数据日）· 点击卡片查看各渠道明细</span></div>';
   html += '<div class="kpi-grid">'
-    + kpi('有效',   D.val.toLocaleString(), 'c-dark',  'day','val')
-    + kpi('推进',   D.push.toLocaleString(),'c-orange','day','push')
-    + kpi('预约',   D.book.toLocaleString(),'c-teal',  'day','book')
-    + kpi('到诊',   D.arr+'<small>人</small>','c-red', 'day','arr')
-    + kpi('总转化', fmtCvrt(D),         'c-green', 'day','cvrt')
+    + kpi('有效',   D.val.toLocaleString(), 'c-dark',  'day','val',  deltaTxt(D.val,  YD.val,  '较昨日'))
+    + kpi('推进',   D.push.toLocaleString(),'c-orange','day','push', deltaTxt(D.push, YD.push, '较昨日'))
+    + kpi('预约',   D.book.toLocaleString(),'c-teal',  'day','book', deltaTxt(D.book, YD.book, '较昨日'))
+    + kpi('到诊',   D.arr+'<small>人</small>','c-red', 'day','arr',  deltaTxt(D.arr,  YD.arr,  '较昨日'))
+    + kpi('总转化', fmtCvrt(D),         'c-green', 'day','cvrt', D.val? deltaTxt(D.cvrt, YD.cvrt, '较昨日','pp') : null)
     + '</div>';
 
-  /* 当月汇总 */
+  /* 当月汇总（含环比） */
   html += '<div class="sec-title"><span class="dot blue"></span>当月汇总 <span class="meta">'+month+' · 已统计 '+daysInMonth+' 天</span></div>';
   html += '<div class="kpi-grid">'
-    + kpi('月有效',   M.val.toLocaleString(),  'c-dark',  'mon','val')
-    + kpi('月推进',   M.push.toLocaleString(), 'c-orange','mon','push')
-    + kpi('月预约',   M.book.toLocaleString(), 'c-teal',  'mon','book')
-    + kpi('月到诊',   M.arr.toLocaleString()+'<small>人</small>','c-red','mon','arr')
-    + kpi('月总转化', fmtCvrt(M),          'c-green', 'mon','cvrt')
+    + kpi('月有效',   M.val.toLocaleString(),  'c-dark',  'mon','val',  deltaTxt(M.val,  PM.val,  '较上月'))
+    + kpi('月推进',   M.push.toLocaleString(), 'c-orange','mon','push', deltaTxt(M.push, PM.push, '较上月'))
+    + kpi('月预约',   M.book.toLocaleString(), 'c-teal',  'mon','book', deltaTxt(M.book, PM.book, '较上月'))
+    + kpi('月到诊',   M.arr.toLocaleString()+'<small>人</small>','c-red','mon','arr', deltaTxt(M.arr, PM.arr, '较上月'))
+    + kpi('月总转化', fmtCvrt(M),          'c-green', 'mon','cvrt', M.val? deltaTxt(M.cvrt, PM.cvrt, '较上月','pp') : null)
     + '</div>';
 
   /* 图表行 */
@@ -613,16 +714,25 @@ function renderDashboard(){
     + '<div id="orgChart"></div></div>'
     + '</div>';
 
+  /* 每日一言（移至底部） */
+  var q=dailyQuote();
+  html += '<div class="quote-banner" style="margin-top:14px;margin-bottom:0">'
+    + '<div class="q-text">'+q.t+'</div>'
+    + '<div class="q-meta"><div class="q-src">'+q.s+'</div><div class="q-flip" onclick="flipQuote()">换一句 ↻</div></div>'
+    + '</div>';
+
   setView('仪表盘', html);
   drawTrend(ld);
   drawOrgBars(month);
 }
 
-function kpi(label, value, cls, scope, metric){
+function kpi(label, value, cls, scope, metric, delta){
+  var d = delta ? '<div class="delta '+delta.cls+'">'+delta.txt+'</div>' : '';
   return '<div class="kpi" onclick="openDetail(\''+scope+'\',\''+metric+'\',\''+label+'\')">'
     + '<div class="label">'+label
     + '<svg class="arrow" viewBox="0 0 24 24" fill="none"><path d="M7 17 17 7M9 7h8v8" stroke="#8492a6" stroke-width="2" stroke-linecap="round"/></svg></div>'
-    + '<div class="value '+cls+'">'+value+'</div></div>';
+    + '<div class="value '+cls+'">'+value+'</div>'
+    + d + '</div>';
 }
 
 /* 近 7 日 组合图：柱=有效（左轴） 折线=到诊（右轴） */
@@ -1212,7 +1322,7 @@ function renderCS(){
 
   setView('客服数据', h);
 }
-function setCsChannel(org){ csChannel=org; renderCS(); }
+function setCsChannel(org){ csChannel=org; renderStaffPerf(); }
 
 /* ==================== 视图：转化漏斗 ==================== */
 var funnelPeriod='mon';
@@ -1274,6 +1384,49 @@ function renderFunnel(){
 }
 
 /* ==================== 视图：客服深度绩效 ==================== */
+/* 客服到诊排名卡片（原「龙虎榜单」模块，已合并至此） */
+function rankCardsHTML(list, month){
+  var rows=STAFF_ALL.map(function(st){
+    var s=sum(list.filter(function(r){return r.staff===st;}));
+    return {org:st, s:s};
+  }).sort(function(a,b){return b.s.arr-a.s.arr;});
+  var max=Math.max.apply(null,rows.map(function(r){return r.s.arr;}))||1;
+  var h='<div class="sec-title"><span class="dot"></span>'+month+' 客服到诊排名 <span class="meta">按到诊数排名 · 点击人员查看漏斗明细</span></div><div class="rank-list">';
+  rows.forEach(function(r,i){
+    h+='<div class="rank-item '+(i<3?'r'+(i+1):'')+'" onclick="openStaffDetail(\''+r.org+'\')">'
+      +'<div class="rank-no">'+(i+1)+'</div>'
+      +'<div class="rank-name">'+r.org+'</div>'
+      +'<div class="rank-bar"><i style="width:'+(r.s.arr/max*100).toFixed(1)+'%" title="转化 '+fmtCvrt(r.s)+'"></i></div>'
+      +'<div class="rank-num">'+r.s.arr+' 人<div style="font-size:11px;color:var(--txt2);font-weight:400">转化 '+fmtCvrt(r.s)+'</div></div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+/* 分渠道客服下钻（原「客服数据」模块，已合并至此） */
+function channelBreakdownHTML(list, label){
+  var cbtn=function(org){
+    return '<button class="btn'+(csChannel===org?' primary':'')+'" onclick="setCsChannel(\''+org+'\')">'+org+'</button>';
+  };
+  var chRecList=list.filter(function(r){return r.org===csChannel;});
+  var h='<div class="sec-title"><span class="dot"></span>'+label+' 分渠道客服数据 <span class="meta">当前渠道：'+csChannel+'</span></div>'
+    +'<div class="toolbar" style="margin-top:0">'+ORGS.map(function(o){return cbtn(o);}).join('')+'</div>'
+    +'<div class="panel" style="padding:12px 14px"><div class="table-wrap"><table class="cs-table"><thead><tr>'
+    +'<th style="width:20%;text-align:left">客服</th><th style="width:16%">有效</th><th style="width:16%">推进</th><th style="width:16%">预约</th><th style="width:16%">到诊</th><th style="width:16%">总转化</th>'
+    +'</tr></thead><tbody>';
+  var chRows=STAFF_ALL.map(function(st){
+    return {st:st, s:sum(chRecList.filter(function(r){return r.staff===st;}))};
+  }).sort(function(a,b){return b.s.val-a.s.val;});
+  chRows.forEach(function(r){
+    h+='<tr><td>'+r.st+'</td><td>'+r.s.val.toLocaleString()+'</td>'
+      +'<td>'+r.s.push.toLocaleString()+'</td><td>'+r.s.book.toLocaleString()+'</td>'
+      +'<td class="hl">'+r.s.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(r.s)+'</td></tr>';
+  });
+  var CT=sum(chRecList);
+  h+='</tbody><tfoot><tr><td>'+csChannel+' 合计</td><td>'+CT.val.toLocaleString()+'</td>'
+    +'<td>'+CT.push.toLocaleString()+'</td><td>'+CT.book.toLocaleString()+'</td>'
+    +'<td class="hl">'+CT.arr.toLocaleString()+'</td><td class="hl">'+fmtCvrt(CT)+'</td></tr></tfoot></table></div></div>';
+  return h;
+}
 var perfPeriod='mon';
 function setPerfPeriod(p){ perfPeriod=p; renderStaffPerf(); }
 function renderStaffPerf(){
@@ -1299,6 +1452,8 @@ function renderStaffPerf(){
   rows.sort(function(a,b){ return b.s.arr - a.s.arr; });
 
   var h='<div class="toolbar" style="margin-top:0">'+btn('day','当日')+btn('mon','当月')+btn('year','年度')+'</div>';
+  /* 客服到诊排名（原龙虎榜） */
+  h+=rankCardsHTML(list, month);
   h+='<div class="sec-title"><span class="dot"></span>'+label+' 客服深度绩效 <span class="meta">总转化=到诊÷有效 · 诊断每位客服的漏斗短板</span></div>';
   h+='<div class="panel"><div class="table-wrap"><table class="cs-table"><colgroup>'
     +'<col style="width:13%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:9%">'
@@ -1348,6 +1503,9 @@ function renderStaffPerf(){
   }
   h+='</div>';
 
+  /* 分渠道客服下钻（原客服数据） */
+  h+=channelBreakdownHTML(list, label);
+
   setView('客服绩效', h);
 }
 
@@ -1395,14 +1553,11 @@ function exportCSV(){
 /* ==================== 路由/导航 ==================== */
 var NAV=[
   {id:'dash',  name:'仪表盘',  icon:'M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z'},
-  {id:'cs',    name:'客服数据',icon:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10Z'},
-  {id:'rank',  name:'龙虎榜单',icon:'M8 21h8m-4-4v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4a1 1 0 0 0-1 1c0 2.2 1.8 4 4 4m10-6h3a1 1 0 0 1 1 1c0 2.2-1.8 4-4 4'},
   {id:'staffperf',name:'客服绩效',icon:'m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z'},
   {id:'year',  name:'年度数据',icon:'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z'},
   {id:'funnel',name:'转化漏斗',icon:'M22 3H2l8 9.5V19l4 2v-8.5L22 3Z'},
   {id:'ops',   name:'固定资产',icon:'M3 3v18h18M7 15l4-6 4 3 5-8'},
-  {id:'ana',   name:'盈亏分析',icon:'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7'},
-  {id:'acct',  name:'账号管理',icon:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m12-14a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z'}
+  {id:'ana',   name:'盈亏分析',icon:'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7'}
 ];
 var cur='dash';
 function buildNav(){
@@ -1419,8 +1574,6 @@ function go(id){ cur=id; route(); }
 function route(){
   buildNav(); closeModal();
   if(cur==='dash') renderDashboard();
-  else if(cur==='rank') renderRank();
-  else if(cur==='cs') renderCS();
   else if(cur==='staffperf') renderStaffPerf();
   else if(cur==='year') renderYear();
   else if(cur==='funnel') renderFunnel();
