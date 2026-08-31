@@ -76,7 +76,8 @@
   @media (max-width:900px){ .quote-banner{flex-direction:column;align-items:flex-start;gap:10px;padding:16px 18px;} .quote-banner .q-meta{text-align:left;} .quote-banner .q-text{font-size:17px;} .quote-banner .q-flip{margin-top:6px;} }
 
   /* KPI 卡片 */
-  .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+  .kpi-grid.cols6{grid-template-columns:repeat(6,1fr);}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:.15s;position:relative;}
   .kpi:hover{box-shadow:0 4px 14px rgba(29,111,224,.12);transform:translateY(-2px);border-color:#c8dcff;}
   .kpi .label{font-size:12px;color:var(--txt2);display:flex;justify-content:space-between;align-items:center;}
@@ -182,6 +183,7 @@
   .fn-name{width:52px;flex-shrink:0;text-align:right;font-weight:700;font-size:14px;color:var(--txt);}
   .fn-track{flex:1;height:52px;background:#f0f3f8;border-radius:9px;overflow:hidden;display:flex;align-items:center;}
   .fn-fill{height:100%;width:0;display:flex;align-items:center;justify-content:flex-end;padding-right:14px;color:#fff;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;transition:width .7s cubic-bezier(.22,1,.36,1);white-space:nowrap;}
+  .fn-fill.fn-zero{width:46px;background:transparent;border:1px dashed #c9d2e0;color:#8492a6;font-weight:700;justify-content:flex-end;padding-right:10px;transition:none;}
   .fn-val{width:64px;flex-shrink:0;text-align:right;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;}
   .fn-pct{width:62px;flex-shrink:0;text-align:right;color:var(--txt2);font-size:13px;font-variant-numeric:tabular-nums;}
   .fn-conn{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;padding:9px 0;font-size:12.5px;color:var(--txt2);}
@@ -232,6 +234,7 @@
 
     /* 栅格与组件适配 */
     .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .kpi-grid:not(.cols6) .kpi:last-child{grid-column:1/-1;}
     .goal-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
     .chart-row{grid-template-columns:1fr;}
     .form-grid{grid-template-columns:repeat(2,1fr);gap:9px;}
@@ -298,7 +301,7 @@
   </div>
 </div>
 
-<script src="data.js?v=2026083102"></script>
+<script src="data.js?v=2026083103"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -406,7 +409,7 @@ function loadData(){
       }
     }catch(e){}
   }
-  if(!records.length){ records = (typeof SEED_RECORDS!=='undefined' && SEED_RECORDS.length) ? SEED_RECORDS.map(function(r,i){ r.id=i+1; return r; }) : makeSample(); }
+  if(!records.length){ records = makeSample(); }
   records = normRecords(records);
   saveData();
   if(typeof window.__DY_SEED__!=='undefined' && window.__DY_SEED__ && window.__DY_SEED__.v){
@@ -449,9 +452,6 @@ function seeded(s){ return function(){ s=(s*9301+49297)%233280; return s/233280;
 
 
 
-/* 真实种子数据（来源：线索清单858193555611451333.xlsx，2026-08-15 烧录｜口径：客服=先聊客服列 / 渠道=运营公司列） */
-var SEED_RECORDS = [{"date": "2026-08-14", "org": "天雄星", "staff": "未知", "tot": 5, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天损星", "staff": "未知", "tot": 12, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天损星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天立星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天机星", "staff": "李林", "tot": 11, "val": 5, "push": 5, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天雄星", "staff": "李林", "tot": 3, "val": 3, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-14", "org": "天机星", "staff": "未知", "tot": 6, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-13", "org": "天雄星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-13", "org": "天损星", "staff": "未知", "tot": 19, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-13", "org": "天机星", "staff": "未知", "tot": 8, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-13", "org": "天机星", "staff": "李林", "tot": 6, "val": 4, "push": 3, "book": 1, "arr": 0}, {"date": "2026-08-13", "org": "天雄星", "staff": "李林", "tot": 6, "val": 3, "push": 3, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天机星", "staff": "未知", "tot": 10, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天雄星", "staff": "未知", "tot": 4, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天机星", "staff": "李林", "tot": 7, "val": 3, "push": 2, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天损星", "staff": "未知", "tot": 16, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天损星", "staff": "李林", "tot": 2, "val": 2, "push": 2, "book": 0, "arr": 0}, {"date": "2026-08-12", "org": "天雄星", "staff": "李林", "tot": 2, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天损星", "staff": "未知", "tot": 8, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天损星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天雄星", "staff": "李林", "tot": 6, "val": 4, "push": 4, "book": 1, "arr": 1}, {"date": "2026-08-11", "org": "天机星", "staff": "李林", "tot": 6, "val": 5, "push": 4, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天机星", "staff": "未知", "tot": 11, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-11", "org": "天雄星", "staff": "未知", "tot": 9, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天机星", "staff": "未知", "tot": 12, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天雄星", "staff": "未知", "tot": 3, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天雄星", "staff": "李林", "tot": 4, "val": 3, "push": 3, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天损星", "staff": "李林", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天损星", "staff": "未知", "tot": 13, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天立星", "staff": "李林", "tot": 1, "val": 0, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天机星", "staff": "李林", "tot": 7, "val": 2, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-10", "org": "天立星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天雄星", "staff": "未知", "tot": 4, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天雄星", "staff": "李林", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天机星", "staff": "李林", "tot": 7, "val": 2, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天机星", "staff": "未知", "tot": 6, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-08", "org": "天立星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天机星", "staff": "李林", "tot": 14, "val": 8, "push": 7, "book": 1, "arr": 1}, {"date": "2026-08-07", "org": "天损星", "staff": "未知", "tot": 12, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天雄星", "staff": "李林", "tot": 1, "val": 1, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天雄星", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-07", "org": "天机星", "staff": "未知", "tot": 10, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天立星", "staff": "李林", "tot": 3, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天雄星", "staff": "未知", "tot": 2, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天损星", "staff": "未知", "tot": 19, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天机星", "staff": "未知", "tot": 5, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天机星", "staff": "李林", "tot": 2, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-06", "org": "天雄星", "staff": "李林", "tot": 4, "val": 4, "push": 3, "book": 1, "arr": 0}, {"date": "2026-08-05", "org": "天损星", "staff": "未知", "tot": 18, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-05", "org": "电击流量号公司", "staff": "未知", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-05", "org": "天立星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-05", "org": "天雄星", "staff": "未知", "tot": 5, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-05", "org": "天雄星", "staff": "李林", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天机星", "staff": "未知", "tot": 11, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天机星", "staff": "李林", "tot": 16, "val": 11, "push": 10, "book": 1, "arr": 1}, {"date": "2026-08-04", "org": "天雄星", "staff": "未知", "tot": 5, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天损星", "staff": "未知", "tot": 18, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天损星", "staff": "李林", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天雄星", "staff": "李林", "tot": 1, "val": 1, "push": 1, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天立星", "staff": "李林", "tot": 2, "val": 2, "push": 2, "book": 0, "arr": 0}, {"date": "2026-08-04", "org": "天机星", "staff": "孙洋", "tot": 1, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天机星", "staff": "未知", "tot": 9, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天雄星", "staff": "未知", "tot": 2, "val": 0, "push": 0, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天机星", "staff": "李林", "tot": 11, "val": 4, "push": 3, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天雄星", "staff": "李林", "tot": 3, "val": 2, "push": 2, "book": 0, "arr": 0}, {"date": "2026-08-03", "org": "天损星", "staff": "未知", "tot": 20, "val": 0, "push": 0, "book": 0, "arr": 0}];
-var SEED_CS = [{"date": "2026-08-14", "staff": "未知", "org": "天雄星", "tot": 5, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-14", "staff": "未知", "org": "天损星", "tot": 12, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-14", "staff": "李林", "org": "天损星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-14", "staff": "未知", "org": "天立星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-14", "staff": "李林", "org": "天机星", "tot": 11, "jt": 0, "jw": 11, "val": 5}, {"date": "2026-08-14", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-14", "staff": "李林", "org": "天雄星", "tot": 3, "jt": 0, "jw": 3, "val": 3}, {"date": "2026-08-14", "staff": "未知", "org": "天机星", "tot": 6, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-13", "staff": "未知", "org": "天雄星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-13", "staff": "未知", "org": "天损星", "tot": 19, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-13", "staff": "未知", "org": "天机星", "tot": 8, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-13", "staff": "李林", "org": "天机星", "tot": 6, "jt": 0, "jw": 6, "val": 4}, {"date": "2026-08-13", "staff": "李林", "org": "天雄星", "tot": 6, "jt": 0, "jw": 6, "val": 3}, {"date": "2026-08-12", "staff": "未知", "org": "天机星", "tot": 10, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-12", "staff": "未知", "org": "天雄星", "tot": 4, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-12", "staff": "李林", "org": "天机星", "tot": 7, "jt": 0, "jw": 7, "val": 3}, {"date": "2026-08-12", "staff": "未知", "org": "天损星", "tot": 16, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-12", "staff": "李林", "org": "天损星", "tot": 2, "jt": 0, "jw": 2, "val": 2}, {"date": "2026-08-12", "staff": "李林", "org": "天雄星", "tot": 2, "jt": 0, "jw": 2, "val": 0}, {"date": "2026-08-11", "staff": "未知", "org": "天损星", "tot": 8, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-11", "staff": "李林", "org": "天损星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-11", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-11", "staff": "李林", "org": "天雄星", "tot": 6, "jt": 0, "jw": 6, "val": 4}, {"date": "2026-08-11", "staff": "李林", "org": "天机星", "tot": 6, "jt": 0, "jw": 6, "val": 5}, {"date": "2026-08-11", "staff": "未知", "org": "天机星", "tot": 11, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-11", "staff": "未知", "org": "天雄星", "tot": 9, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-10", "staff": "未知", "org": "天机星", "tot": 12, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-10", "staff": "未知", "org": "天雄星", "tot": 3, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-10", "staff": "李林", "org": "天雄星", "tot": 4, "jt": 0, "jw": 4, "val": 3}, {"date": "2026-08-10", "staff": "李林", "org": "天损星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-10", "staff": "未知", "org": "天损星", "tot": 13, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-10", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-10", "staff": "李林", "org": "天机星", "tot": 7, "jt": 0, "jw": 7, "val": 2}, {"date": "2026-08-10", "staff": "未知", "org": "天立星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-08", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-08", "staff": "未知", "org": "天雄星", "tot": 4, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-08", "staff": "李林", "org": "天雄星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-08", "staff": "李林", "org": "天机星", "tot": 7, "jt": 0, "jw": 7, "val": 2}, {"date": "2026-08-08", "staff": "未知", "org": "天机星", "tot": 6, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-08", "staff": "未知", "org": "天立星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-07", "staff": "李林", "org": "天机星", "tot": 14, "jt": 0, "jw": 14, "val": 8}, {"date": "2026-08-07", "staff": "未知", "org": "天损星", "tot": 12, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-07", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-07", "staff": "李林", "org": "天雄星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-07", "staff": "未知", "org": "天雄星", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-07", "staff": "未知", "org": "天机星", "tot": 10, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-06", "staff": "李林", "org": "天立星", "tot": 3, "jt": 0, "jw": 3, "val": 1}, {"date": "2026-08-06", "staff": "未知", "org": "天雄星", "tot": 2, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-06", "staff": "未知", "org": "天损星", "tot": 19, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-06", "staff": "未知", "org": "天机星", "tot": 5, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-06", "staff": "李林", "org": "天机星", "tot": 2, "jt": 0, "jw": 2, "val": 1}, {"date": "2026-08-06", "staff": "李林", "org": "天雄星", "tot": 4, "jt": 0, "jw": 4, "val": 4}, {"date": "2026-08-05", "staff": "未知", "org": "天损星", "tot": 18, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-05", "staff": "未知", "org": "电击流量号公司", "tot": 1, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-05", "staff": "李林", "org": "天立星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-05", "staff": "未知", "org": "天雄星", "tot": 5, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-05", "staff": "李林", "org": "天雄星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-04", "staff": "未知", "org": "天机星", "tot": 11, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-04", "staff": "李林", "org": "天机星", "tot": 16, "jt": 0, "jw": 16, "val": 11}, {"date": "2026-08-04", "staff": "未知", "org": "天雄星", "tot": 5, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-04", "staff": "未知", "org": "天损星", "tot": 18, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-04", "staff": "李林", "org": "天损星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-04", "staff": "李林", "org": "天雄星", "tot": 1, "jt": 0, "jw": 1, "val": 1}, {"date": "2026-08-04", "staff": "李林", "org": "天立星", "tot": 2, "jt": 0, "jw": 2, "val": 2}, {"date": "2026-08-04", "staff": "孙洋", "org": "天机星", "tot": 1, "jt": 0, "jw": 1, "val": 0}, {"date": "2026-08-03", "staff": "未知", "org": "天机星", "tot": 9, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-03", "staff": "未知", "org": "天雄星", "tot": 2, "jt": 0, "jw": 0, "val": 0}, {"date": "2026-08-03", "staff": "李林", "org": "天机星", "tot": 11, "jt": 0, "jw": 11, "val": 4}, {"date": "2026-08-03", "staff": "李林", "org": "天雄星", "tot": 3, "jt": 0, "jw": 3, "val": 2}, {"date": "2026-08-03", "staff": "未知", "org": "天损星", "tot": 20, "jt": 0, "jw": 0, "val": 0}];
 
 function makeSample(){
   var base = { /* 月有效量, 有效率, 推进率(占有效), 预约率(占推进), 到诊率(占预约) */
@@ -534,7 +534,7 @@ function loadCs(){
       }
     }catch(e){}
   }
-  if(!csRecords.length){ csRecords = (typeof SEED_CS!=='undefined' && SEED_CS.length) ? SEED_CS.map(function(r,i){ r.id=i+1; return r; }) : makeCsSample(); }
+  if(!csRecords.length){ csRecords = makeCsSample(); }
   csRecords = normCsList(csRecords);
   saveCs();
 }
@@ -1195,10 +1195,11 @@ function renderProfit(){
     var active = (profitScope===m) || (profitScope==='mon' && m===month);
     h += pbtn(m, (+m.slice(5,7))+'月', active);
   });
-  h += pbtn('year','年度', profitScope==='year') + '</div>';
+  h += pbtn('year','年度', profitScope==='year')
+     + '<button class="btn" style="margin-left:auto" onclick="showReport()">生成月报</button></div>';
 
   h+='<div class="sec-title"><span class="dot"></span>团队盈亏总览 <span class="meta">'+label+' · 本点¥2100/个 · 推出¥1050/个 · 成本='+staffCount+'人×¥'+fmtMoney(perCost)+'</span></div>'
-    +'<div class="kpi-grid">'
+    +'<div class="kpi-grid cols6">'
     +profitKpi('本点到诊', T.local.toLocaleString()+'<small>人</small>', 'c-blue')
     +profitKpi('推出到诊', T.push.toLocaleString()+'<small>人</small>', 'c-orange')
     +profitKpi('总收入', '¥'+fmtMoney(T.income), 'c-blue')
@@ -1227,6 +1228,53 @@ function renderProfit(){
     +'<td>¥'+fmtMoney(T.cost)+'</td><td class="hl '+(T.profit>=0?'c-red':'c-green')+'">¥'+fmtMoney(T.profit)+'</td></tr></tfoot></table></div></div>';
 
   setView('盈亏分析', h);
+}
+
+/* ==================== 一键生成经营月报文本 ==================== */
+function generateWeekReport(){
+  var ld=latestDate(), month=ld.slice(0,7);
+  var monList=records.filter(function(r){return r.date.slice(0,7)===month;});
+  var M=sum(monList);
+  var staffCount=STAFF.length, perCost=10000;
+  var local=0, push=0;
+  monList.forEach(function(r){ local+=(r.arr_local||0); push+=(r.arr_push||0); });
+  var income=local*2100+push*1050;
+  var cost=perCost*staffCount;
+  var profit=income-cost;
+  var rank=STAFF_ALL.map(function(st){ return {st:st, s:sum(monList.filter(function(r){return r.staff===st;}))}; })
+    .sort(function(a,b){return b.s.arr-a.s.arr;});
+  var L=[];
+  L.push('【DY-CRM 经营月报】'+month);
+  L.push('');
+  L.push('一、核心漏斗');
+  L.push('有效 '+M.val+' → 推进 '+M.push+' → 预约 '+M.book+' → 到诊 '+M.arr);
+  L.push('总转化（到诊÷有效）'+fmtCvrt(M));
+  L.push('');
+  L.push('二、客服到诊排名');
+  rank.forEach(function(r,i){ L.push((i+1)+'. '+r.st+' '+r.s.arr+' 人（有效 '+r.s.val+'）'); });
+  L.push('');
+  L.push('三、盈亏（本点¥2100/个 · 推出¥1050/个）');
+  L.push('本点到诊 '+local+' · 推出到诊 '+push);
+  L.push('总收入 ¥'+fmtMoney(income)+' · 成本 ¥'+fmtMoney(cost)+'（'+staffCount+'人×¥1万）');
+  L.push('人效合计 ¥'+fmtMoney(profit)+'（'+(profit>=0?'盈利':'亏损')+'）');
+  return L.join('\n');
+}
+function showReport(){
+  var txt=generateWeekReport();
+  document.getElementById('modalTitle').textContent='经营月报 · '+latestDate().slice(0,7)+'（可复制粘贴）';
+  var esc=txt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  document.getElementById('modalBody').innerHTML=
+    '<textarea id="reportTxt" readonly style="width:100%;height:340px;font-size:13px;font-family:inherit;line-height:1.8;border:1px solid var(--line);border-radius:8px;padding:12px;box-sizing:border-box;resize:vertical;">'+esc+'</textarea>'
+    +'<div style="margin-top:12px;display:flex;gap:10px;justify-content:flex-end;">'
+    +'<button class="btn" onclick="closeModal()">关闭</button>'
+    +'<button class="btn primary" onclick="copyReport()">复制全文</button></div>';
+  document.getElementById('mask').classList.add('show');
+}
+function copyReport(){
+  var ta=document.getElementById('reportTxt'); if(!ta) return;
+  ta.focus(); ta.select(); ta.setSelectionRange(0,999999);
+  var ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+  alert(ok?'已复制，可直接粘贴到微信':'复制失败，请手动全选复制');
 }
 
 /* ==================== 视图：年度数据 ==================== */
@@ -1401,9 +1449,12 @@ function renderFunnel(){
   h+='<div class="panel"><div class="funnel">';
   stages.forEach(function(st, i){
     var v=s[st.key];
-    var w=Math.max(8, Math.round(v/maxV*100));
+    var w=Math.round(v/maxV*100);
+    var fill = v===0
+      ? '<div class="fn-fill fn-zero">0</div>'
+      : '<div class="fn-fill" data-w="'+w+'%" style="background:'+st.color+'">'+v.toLocaleString()+'</div>';
     h+='<div class="fn-row"><div class="fn-name">'+st.name+'</div>'
-      +'<div class="fn-track"><div class="fn-fill" data-w="'+w+'%" style="background:'+st.color+'">'+v.toLocaleString()+'</div></div>'
+      +'<div class="fn-track">'+fill+'</div>'
       +'<div class="fn-val">'+v.toLocaleString()+'</div>'
       +'<div class="fn-pct">'+(i===0?'100%':(s.val?Math.round(v/s.val*100)+'%':'—'))+'</div></div>';
     if(i<stages.length-1){
@@ -1431,7 +1482,7 @@ function renderFunnel(){
 
   setView('转化漏斗', h);
   requestAnimationFrame(function(){
-    document.querySelectorAll('.fn-fill').forEach(function(el){ el.style.width=el.dataset.w; });
+    document.querySelectorAll('.fn-fill:not(.fn-zero)').forEach(function(el){ el.style.width=el.dataset.w; });
   });
 }
 
@@ -1563,7 +1614,7 @@ function renderStaffPerf(){
 
 /* ==================== 导入导出 ==================== */
 function exportJSON(){
-  var blob=new Blob([JSON.stringify({records:records, cs:csRecords},null,2)],{type:'application/json'});
+  var blob=new Blob([JSON.stringify({records:records, cs:csRecords, assets:assets},null,2)],{type:'application/json'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download='DY-CRM数据_'+todayStr()+'.json';
@@ -1577,17 +1628,22 @@ function importJSON(ev){
       var data=JSON.parse(rd.result);
       var arr = Array.isArray(data)? data : (data.records||[]);
       var cs  = Array.isArray(data)? []   : (data.cs||[]);
+      var as  = Array.isArray(data)? []   : (data.assets||[]);
       arr=arr.filter(function(r){return r.date&&r.org;}).map(function(r,i){
         return {id:i+1,date:r.date,org:r.org,staff:r.staff||'',tot:+r.tot||0,val:+r.val||0,push:+r.push||0,book:+r.book||0,arr:+r.arr||0};
       });
       cs=cs.filter(function(r){return r.date&&r.staff;}).map(function(r,i){
         return {id:i+1,date:r.date,staff:r.staff,org:r.org||'',tot:+r.tot||0,jt:+r.jt||0,jw:+r.jw||0,val:+r.val||0};
       });
-      if(!arr.length && !cs.length) throw 0;
+      as=as.filter(function(a){return a&&a.model;}).map(function(a,i){
+        return {id:+a.id||(i+1), model:a.model, sn:a.sn||'', status:a.status||'在用'};
+      });
+      if(!arr.length && !cs.length && !as.length) throw 0;
       if(arr.length){ records=arr; saveData(); }
       if(cs.length){ csRecords=cs; saveCs(); }
+      if(as.length){ assets=as; saveAssets(); }
       route();
-      alert('导入成功：漏斗数据 '+arr.length+' 条，客服数据 '+cs.length+' 条');
+      alert('导入成功：漏斗数据 '+arr.length+' 条，客服数据 '+cs.length+' 条'+(as.length?'，资产 '+as.length+' 条':''));
     }catch(e){ alert('文件格式不正确，导入失败'); }
   };
   rd.readAsText(f); ev.target.value='';
