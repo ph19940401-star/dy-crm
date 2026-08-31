@@ -102,6 +102,15 @@
   .health-bar .hb-txt.bad{color:var(--red);}
   .health-bar .hb-tag{margin-left:auto;font-size:12px;color:var(--txt2);white-space:nowrap;}
 
+  /* 异常告警区 */
+  .alert-bar{background:#fff5f5;border:1px solid #ffd9d9;border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;}
+  .alert-bar .alert-head{font-size:13px;font-weight:700;color:#c0392b;margin-bottom:6px;}
+  .alert-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--txt);padding:7px 0;border-top:1px solid #ffe3e3;}
+  .alert-item:first-of-type{border-top:none;padding-top:2px;}
+  .alert-item .alert-txt{flex:1;}
+  .alert-item .alert-go{flex-shrink:0;border:1px solid #ffc9c9;background:#fff;color:#c0392b;border-radius:6px;padding:3px 12px;font-size:12px;cursor:pointer;transition:.15s;}
+  .alert-item .alert-go:hover{background:#ffecec;}
+
   /* 月度目标达成 */
   .goal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:4px;}
   .goal{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;}
@@ -289,12 +298,14 @@
   </div>
 </div>
 
-<script src="data.js?v=2026083101"></script>
+<script src="data.js?v=2026083102"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
 /* 云端数据源：GitHub 私密 Gist 的 raw 读取地址（公开可读、无需密钥）。占位，部署前替换为真实 URL */
 var DATA_URL = 'https://gist.githubusercontent.com/ph19940401-star/1c72c901fdfae3c9bfcd1c10d54f9de4/raw/data.json';
+var DATA_VERSION = '';      // 当前数据版本号（data.js 的 __DY_SEED__.v 或 Gist data.json 的 v）
+var CLOUD_STATUS = 'none';  // 云端拉取状态：none（未拉取）| local（本地 data.js 优先）| ok | fail
 var LS_OLD4 = 'wb_medicrm_records_v4';
 var LS_OLD3 = 'wb_medicrm_records_v3';
 var LS_OLD2 = 'wb_medicrm_records_v2';
@@ -398,16 +409,19 @@ function loadData(){
   if(!records.length){ records = (typeof SEED_RECORDS!=='undefined' && SEED_RECORDS.length) ? SEED_RECORDS.map(function(r,i){ r.id=i+1; return r; }) : makeSample(); }
   records = normRecords(records);
   saveData();
+  if(typeof window.__DY_SEED__!=='undefined' && window.__DY_SEED__ && window.__DY_SEED__.v){
+    DATA_VERSION = window.__DY_SEED__.v;
+  }
 }
 
 /* 从云端数据源拉取最新数据（公开读取地址，无需密钥）；失败则保留本地缓存/示例 */
 async function pullCloud(){
   if(!DATA_URL || DATA_URL.indexOf('__GIST__')===0) return;
-  if(localStorage.getItem('__DY_SEED_VER__')) return; /* 已用本地 data.js，避免云端旧数据回灌 */
+  if(localStorage.getItem('__DY_SEED_VER__')){ CLOUD_STATUS='local'; return; } /* 已用本地 data.js，避免云端旧数据回灌 */
   try{
     var url = DATA_URL + (DATA_URL.indexOf('?')>=0 ? '&' : '?') + 't=' + Date.now();
     var res = await fetch(url, {cache:'no-store'});
-    if(!res.ok) return;
+    if(!res.ok) throw new Error('http '+res.status);
     var d = await res.json();
     var changed = false;
     if(d.records && d.records.length){
@@ -418,8 +432,13 @@ async function pullCloud(){
       csRecords = normCsList(d.cs.map(function(r,i){ r.id=i+1; return r; }));
       saveCs(); changed = true;
     }
+    if(d.v) DATA_VERSION = d.v;
+    CLOUD_STATUS = 'ok';
     if(changed){ route(); }
-  }catch(e){ /* 离线或网络异常，保留本地缓存 */ }
+  }catch(e){
+    CLOUD_STATUS = 'fail';
+    route();  /* 重渲染以显示云端失败提示 */
+  }
 }
 function saveData(){ localStorage.setItem(LS_KEY, JSON.stringify(records)); }
 
@@ -630,16 +649,45 @@ function deltaTxt(cur, prev, prefix, kind){
   var sign = d>0?'+':'';
   return {txt: prefix+' '+sign+d+'（'+sign+pct.toFixed(0)+'%）', cls: d>0?'up':(d<0?'down':'flat')};
 }
-/* 数据新鲜度健康条 */
-function healthBar(ld, today){
+/* 数据新鲜度健康条（tag 位显示数据版本号） */
+function healthBar(ld, today, ver){
   var gap = daysGap(ld, today);
-  var dot, txt, tag, cls='';
-  if(gap<=0){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（今天）'; tag='实时'; }
-  else if(gap===1){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（昨天）'; tag='较新'; }
-  else if(gap<=3){ dot='warn'; cls='warn'; txt='数据最新更新至 <b>'+ld+'</b>，已过去 <b>'+gap+'</b> 天'; tag='留意补录'; }
-  else { dot='bad'; cls='bad'; txt='数据最新更新至 <b>'+ld+'</b>，已断更 <b>'+gap+'</b> 天，请及时补录'; tag='需更新'; }
-  return '<div class="health-bar"><span class="hb-dot '+dot+'"></span><span class="hb-txt '+cls+'">'+txt+'</span><span class="hb-tag">'+tag+'</span></div>';
+  var dot, txt, cls='';
+  if(gap<=0){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（今天）'; }
+  else if(gap===1){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（昨天）'; }
+  else if(gap<=3){ dot='warn'; cls='warn'; txt='数据最新更新至 <b>'+ld+'</b>，已过去 <b>'+gap+'</b> 天'; }
+  else { dot='bad'; cls='bad'; txt='数据最新更新至 <b>'+ld+'</b>，已断更 <b>'+gap+'</b> 天，请及时补录'; }
+  var tag = ver ? 'v'+ver : '';
+  return '<div class="health-bar"><span class="hb-dot '+dot+'"></span><span class="hb-txt '+cls+'">'+txt+'</span>'+(tag?'<span class="hb-tag">'+tag+'</span>':'')+'</div>';
 }
+/* 异常告警区：断更 / 到诊挂零 / 客服挂零；无告警时返回空串（不渲染） */
+function alertsHTML(ld, today){
+  var gap = daysGap(ld, today);
+  var dayList = records.filter(function(r){return r.date===ld;});
+  var D = sum(dayList);
+  var alerts = [];
+  if(gap >= 2) alerts.push({txt:'数据已断更 '+gap+' 天（最新 '+ld+'），请及时补录', go:''});
+  if(D.arr === 0) alerts.push({txt:'最新数据日 '+ld+' 到诊挂零，当日无人到诊', go:'funnel'});
+  var zeroStaff = STAFF_ALL.filter(function(st){
+    return sum(dayList.filter(function(r){return r.staff===st;})).val === 0;
+  });
+  if(zeroStaff.length) alerts.push({txt:'当日有效挂零：'+zeroStaff.join('、'), go:'staffperf'});
+  if(!alerts.length) return '';
+  var h='<div class="alert-bar"><div class="alert-head">⚠ 异常提醒（'+alerts.length+'）</div>';
+  alerts.forEach(function(a){
+    h+='<div class="alert-item"><span class="alert-txt">'+a.txt+'</span>'
+      +(a.go?'<button class="alert-go" onclick="go(\''+a.go+'\')">查看 →</button>':'')+'</div>';
+  });
+  h+='</div>';
+  return h;
+}
+/* 云端拉取失败提示条 + 重试 */
+function cloudFailBar(){
+  return '<div class="health-bar" style="background:#fff5f5;border-color:#ffd9d9">'
+    +'<span class="hb-dot bad"></span><span class="hb-txt bad">云端数据拉取失败，当前展示本地缓存数据</span>'
+    +'<button class="btn" style="margin-left:auto;padding:4px 12px;min-height:30px;font-size:12px" onclick="retryCloud()">重试</button></div>';
+}
+function retryCloud(){ CLOUD_STATUS='none'; pullCloud(); }
 /* 月度目标达成进度条 */
 function targetBar(M, month){
   var items=[
@@ -680,17 +728,21 @@ function renderDashboard(){
   var PM = sum(records.filter(function(r){return r.date.slice(0,7)===pm;}));
 
   var html = '';
-  /* 数据新鲜度健康条 */
-  html += healthBar(ld, today);
+  /* 数据新鲜度健康条（含版本号） */
+  html += healthBar(ld, today, DATA_VERSION);
+  /* 云端拉取失败提示 */
+  if(CLOUD_STATUS==='fail') html += cloudFailBar();
+  /* 异常告警区（无告警时隐藏） */
+  html += alertsHTML(ld, today);
   /* 本月目标达成 */
   html += targetBar(M, month);
 
   /* 当日汇总（含环比） */
   html += '<div class="sec-title"><span class="dot"></span>当日汇总 <span class="meta">'+ld+'（最新数据日）· 点击卡片查看各渠道明细</span></div>';
   html += '<div class="kpi-grid">'
-    + kpi('有效',   D.val.toLocaleString(), 'c-dark',  'day','val',  deltaTxt(D.val,  YD.val,  '较昨日'))
-    + kpi('推进',   D.push.toLocaleString(),'c-orange','day','push', deltaTxt(D.push, YD.push, '较昨日'))
-    + kpi('预约',   D.book.toLocaleString(),'c-teal',  'day','book', deltaTxt(D.book, YD.book, '较昨日'))
+    + kpi('有效',   D.val.toLocaleString(), 'c-blue',  'day','val',  deltaTxt(D.val,  YD.val,  '较昨日'))
+    + kpi('推进',   D.push.toLocaleString(),'c-teal',  'day','push', deltaTxt(D.push, YD.push, '较昨日'))
+    + kpi('预约',   D.book.toLocaleString(),'c-orange','day','book', deltaTxt(D.book, YD.book, '较昨日'))
     + kpi('到诊',   D.arr+'<small>人</small>','c-red', 'day','arr',  deltaTxt(D.arr,  YD.arr,  '较昨日'))
     + kpi('总转化', fmtCvrt(D),         'c-green', 'day','cvrt', D.val? deltaTxt(D.cvrt, YD.cvrt, '较昨日','pp') : null)
     + '</div>';
@@ -698,9 +750,9 @@ function renderDashboard(){
   /* 当月汇总（含环比） */
   html += '<div class="sec-title"><span class="dot blue"></span>当月汇总 <span class="meta">'+month+' · 已统计 '+daysInMonth+' 天</span></div>';
   html += '<div class="kpi-grid">'
-    + kpi('月有效',   M.val.toLocaleString(),  'c-dark',  'mon','val',  deltaTxt(M.val,  PM.val,  '较上月'))
-    + kpi('月推进',   M.push.toLocaleString(), 'c-orange','mon','push', deltaTxt(M.push, PM.push, '较上月'))
-    + kpi('月预约',   M.book.toLocaleString(), 'c-teal',  'mon','book', deltaTxt(M.book, PM.book, '较上月'))
+    + kpi('月有效',   M.val.toLocaleString(),  'c-blue',  'mon','val',  deltaTxt(M.val,  PM.val,  '较上月'))
+    + kpi('月推进',   M.push.toLocaleString(), 'c-teal',  'mon','push', deltaTxt(M.push, PM.push, '较上月'))
+    + kpi('月预约',   M.book.toLocaleString(), 'c-orange','mon','book', deltaTxt(M.book, PM.book, '较上月'))
     + kpi('月到诊',   M.arr.toLocaleString()+'<small>人</small>','c-red','mon','arr', deltaTxt(M.arr, PM.arr, '较上月'))
     + kpi('月总转化', fmtCvrt(M),          'c-green', 'mon','cvrt', M.val? deltaTxt(M.cvrt, PM.cvrt, '较上月','pp') : null)
     + '</div>';
@@ -708,9 +760,9 @@ function renderDashboard(){
   /* 图表行 */
   html += '<div class="chart-row">'
     + '<div class="panel"><h3>近 7 日有效 / 到诊趋势</h3>'
-    + '<div class="legend"><span class="lg"><i class="sw" style="background:#1d6fe0"></i>有效</span><span class="lg"><i class="sw" style="background:#e6a23c"></i>到诊</span></div>'
+    + '<div class="legend"><span class="lg"><i class="sw" style="background:#1d6fe0"></i>有效</span><span class="lg"><i class="sw" style="background:#e64500"></i>到诊</span></div>'
     + '<div id="trendChart"></div></div>'
-    + '<div class="panel"><h3>'+month+' · 各渠道到诊</h3><div class="legend"><span class="lg"><i class="sw" style="background:#0e9f9f"></i>当月到诊（人）</span></div>'
+    + '<div class="panel"><h3>'+month+' · 各渠道到诊</h3><div class="legend"><span class="lg"><i class="sw" style="background:#e64500"></i>当月到诊（人）</span></div>'
     + '<div id="orgChart"></div></div>'
     + '</div>';
 
@@ -758,7 +810,7 @@ function drawTrend(ld){
     var v=Math.round(maxVal*(1-g/4));
     s+='<text x="'+(pl-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="#8492a6">'+v+'</text>';
     var hv=Math.round(maxArr*(1-g/4));
-    s+='<text x="'+(W-pr+8)+'" y="'+(y+4)+'" font-size="10" fill="#e6a23c">'+hv+'</text>';
+    s+='<text x="'+(W-pr+8)+'" y="'+(y+4)+'" font-size="10" fill="#e64500">'+hv+'</text>';
   }
   var pts=[];
   data.forEach(function(d,i){
@@ -770,9 +822,9 @@ function drawTrend(ld){
     s+='<text x="'+x+'" y="'+(H-pb+16)+'" text-anchor="middle" font-size="10" fill="#8492a6">'+d.day+'</text>';
   });
   var path=pts.map(function(p,i){return (i?'L':'M')+p[0]+' '+p[1];}).join(' ');
-  s+='<path d="'+path+'" fill="none" stroke="#e6a23c" stroke-width="2.5"/>';
+  s+='<path d="'+path+'" fill="none" stroke="#e64500" stroke-width="2.5"/>';
   pts.forEach(function(p,i){
-    s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="#fff" stroke="#e6a23c" stroke-width="2"><title>'+data[i].day+' 到诊 '+data[i].arr+'</title></circle>';
+    s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="#fff" stroke="#e64500" stroke-width="2"><title>'+data[i].day+' 到诊 '+data[i].arr+'</title></circle>';
   });
   s+='</svg>';
   document.getElementById('trendChart').innerHTML=s;
@@ -790,8 +842,8 @@ function drawOrgBars(month){
   rows.forEach(function(r,i){
     var y=i*rh+8, bw=(W-pl-pr)*r.arr/max;
     s+='<text x="'+(pl-8)+'" y="'+(y+13)+'" text-anchor="end" font-size="12" fill="#1f2d3d">'+r.org+'</text>';
-    s+='<rect x="'+pl+'" y="'+y+'" width="'+Math.max(bw,2)+'" height="18" rx="4" fill="#0e9f9f"><title>'+r.org+' 到诊 '+r.arr+' 人</title></rect>';
-    s+='<text x="'+(pl+bw+8)+'" y="'+(y+13)+'" font-size="11" fill="#0e9f9f" font-weight="700">'+r.arr+' 人</text>';
+    s+='<rect x="'+pl+'" y="'+y+'" width="'+Math.max(bw,2)+'" height="18" rx="4" fill="#e64500"><title>'+r.org+' 到诊 '+r.arr+' 人</title></rect>';
+    s+='<text x="'+(pl+bw+8)+'" y="'+(y+13)+'" font-size="11" fill="#e64500" font-weight="700">'+r.arr+' 人</text>';
   });
   s+='</svg>';
   document.getElementById('orgChart').innerHTML=s;
@@ -1149,8 +1201,8 @@ function renderProfit(){
     +'<div class="kpi-grid">'
     +profitKpi('本点到诊', T.local.toLocaleString()+'<small>人</small>', 'c-blue')
     +profitKpi('推出到诊', T.push.toLocaleString()+'<small>人</small>', 'c-orange')
-    +profitKpi('总收入', '¥'+fmtMoney(T.income), 'c-red')
-    +profitKpi('成本', '¥'+fmtMoney(T.cost)+'<small> 固定</small>', 'c-green')
+    +profitKpi('总收入', '¥'+fmtMoney(T.income), 'c-blue')
+    +profitKpi('成本', '¥'+fmtMoney(T.cost)+'<small> 固定</small>', 'c-dark')
     +profitKpi('人效合计', '¥'+fmtMoney(T.profit), T.profit>=0?'c-red':'c-green')
     +profitKpi('人均生产力', '¥'+fmtMoney(T.profit / staffCount), T.profit>=0?'c-red':'c-green')
     +'</div>';
@@ -1643,13 +1695,7 @@ function animateNumbers(root){
       }
     }
   });
-  /* 表格单元格：纯数字 / ¥ / % / 人 */
-  root.querySelectorAll('td').forEach(function(td){
-    var t=td.textContent.trim();
-    if(/^¥?-?[\d,]+(\.\d+)?(人|%)?$/.test(t)){
-      td.innerHTML='<span class="cnt" data-target="'+t+'">'+t+'</span>';
-    }
-  });
+  /* 表格单元格：静态渲染（避免年度页数百个 td 同时动画造成卡顿） */
   root.querySelectorAll('span.cnt').forEach(function(s){ countUp(s,dur); });
 }
 
