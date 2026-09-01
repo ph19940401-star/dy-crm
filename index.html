@@ -123,6 +123,12 @@
   .alert-item .alert-txt{flex:1;}
   .alert-item .alert-go{flex-shrink:0;border:1px solid #ffc9c9;background:#fff;color:#c0392b;border-radius:6px;padding:3px 12px;font-size:12px;cursor:pointer;transition:.15s;}
   .alert-item .alert-go:hover{background:#ffecec;}
+  /* 提示级（黄）：轻量提醒，区别于红色告警级 */
+  .alert-bar.hint{background:#fffaf0;border-color:#ffe1a8;}
+  .alert-bar.hint .alert-head{color:#ad6800;}
+  .alert-bar.hint .alert-item{border-top-color:#ffeecd;}
+  .alert-bar.hint .alert-go{border-color:#f0d9a8;color:#ad6800;}
+  .alert-bar.hint .alert-go:hover{background:#fdf0d5;}
 
   /* 月度目标达成 */
   .goal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:4px;}
@@ -313,7 +319,7 @@
   </div>
 </div>
 
-<script src="data.js?v=2026090101"></script>
+<script src="data.js?v=2026090102"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -704,7 +710,7 @@ function gapBar(M, month, today){
 /* 真异常告警区：断更 / 渠道断流 / 客服连续挂零 / 到诊告急
    设计原则：单日波动不报，只报「连续 N 个数据日」的持续性异常，避免天天误报 */
 function alertsHTML(ld, today){
-  var alerts=[];
+  var alerts=[], hints=[], arrZero3=[];
   var gap=daysGap(ld, today);
   if(gap>=2) alerts.push({txt:'数据已断更 '+gap+' 天（最新 '+ld+'），请及时补录', go:''});
 
@@ -731,20 +737,46 @@ function alertsHTML(ld, today){
       });
       if(dead) alerts.push({txt:'客服「'+st+'」连续 '+N+' 个数据日有效挂零', go:'staffperf'});
     });
+    /* 客服到诊挂零·告警级：连续 3 个数据日到诊=0，且当月累计到诊>0（本该有量的才报） */
+    STAFF.forEach(function(st){
+      var monArr=sum(records.filter(function(r){ return r.date.slice(0,7)===ym && r.staff===st; })).arr;
+      if(monArr<=0) return;
+      var dead=recent.every(function(d){
+        return sum(records.filter(function(r){ return r.date===d && r.staff===st; })).arr===0;
+      });
+      if(dead){ arrZero3.push(st); alerts.push({txt:'客服「'+st+'」连续 '+N+' 个数据日到诊挂零（当月累计 '+monArr+' 人）', go:'staffperf'}); }
+    });
   }
+  /* 客服到诊挂零·提示级：最新数据日（ld）到诊=0（已达告警级的不再重复提示） */
+  var yZero=STAFF.filter(function(st){
+    if(arrZero3.indexOf(st)>=0) return false;
+    return sum(records.filter(function(r){ return r.date===ld && r.staff===st; })).arr===0;
+  });
+  if(yZero.length) hints.push({txt:'昨日（'+ld+'）到诊挂零：'+yZero.join('、'), go:'staffperf'});
   /* 到诊告急：最近 7 个数据日累计到诊为 0（7 日颗粒度，规避到诊数据天然滞后） */
   var last7=dates.slice(0,7);
   if(last7.length>=4){
     var arr7=sum(records.filter(function(r){ return last7.indexOf(r.date)>=0; })).arr;
     if(arr7===0) alerts.push({txt:'最近 '+last7.length+' 个数据日（'+last7[last7.length-1]+' ~ '+last7[0]+'）累计到诊为 0，请补录到诊表', go:'funnel'});
   }
-  if(!alerts.length) return '';
-  var h='<div class="alert-bar"><div class="alert-head">⚠ 异常提醒（'+alerts.length+'）</div>';
-  alerts.forEach(function(a){
-    h+='<div class="alert-item"><span class="alert-txt">'+a.txt+'</span>'
-      +(a.go?'<button class="alert-go" onclick="go(\''+a.go+'\')">查看 →</button>':'')+'</div>';
-  });
-  h+='</div>';
+  if(!alerts.length && !hints.length) return '';
+  var h='';
+  if(alerts.length){
+    h+='<div class="alert-bar"><div class="alert-head">⚠ 异常提醒（'+alerts.length+'）</div>';
+    alerts.forEach(function(a){
+      h+='<div class="alert-item"><span class="alert-txt">'+a.txt+'</span>'
+        +(a.go?'<button class="alert-go" onclick="go(\''+a.go+'\')">查看 →</button>':'')+'</div>';
+    });
+    h+='</div>';
+  }
+  if(hints.length){
+    h+='<div class="alert-bar hint"><div class="alert-head">◔ 提示（'+hints.length+'）</div>';
+    hints.forEach(function(a){
+      h+='<div class="alert-item"><span class="alert-txt">'+a.txt+'</span>'
+        +(a.go?'<button class="alert-go" onclick="go(\''+a.go+'\')">查看 →</button>':'')+'</div>';
+    });
+    h+='</div>';
+  }
   return h;
 }
 /* 云端拉取失败提示条 + 重试 */
