@@ -103,7 +103,19 @@
   .health-bar .hb-txt.bad{color:var(--red);}
   .health-bar .hb-tag{margin-left:auto;font-size:12px;color:var(--txt2);white-space:nowrap;}
 
-  /* 异常告警区 */
+  /* 本月倒计时 + 日均缺口（常驻） */
+  .gap-bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;}
+  .gap-bar .gap-head{font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;}
+  .gap-bar .gap-head b{color:var(--blue);font-size:16px;padding:0 2px;font-variant-numeric:tabular-nums;}
+  .gap-bar .gap-end{font-weight:400;color:var(--txt2);font-size:12px;margin-left:4px;}
+  .gap-bar .gap-items{display:flex;flex-wrap:wrap;gap:8px;}
+  .gap-bar .gap-item{font-size:12px;color:var(--txt2);background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:3px 11px;white-space:nowrap;}
+  .gap-bar .gap-item b{color:var(--txt);font-weight:700;font-variant-numeric:tabular-nums;}
+  .gap-bar .gap-item.warn{background:#fff8ec;border-color:#ffe0b2;color:#946200;}
+  .gap-bar .gap-item.warn b{color:#c07a00;}
+  .gap-bar .gap-item.ok{background:#f0f9f2;border-color:#c8ebd3;color:var(--green);}
+
+  /* 真异常告警区（无异常时隐藏） */
   .alert-bar{background:#fff5f5;border:1px solid #ffd9d9;border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;}
   .alert-bar .alert-head{font-size:13px;font-weight:700;color:#c0392b;margin-bottom:6px;}
   .alert-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--txt);padding:7px 0;border-top:1px solid #ffe3e3;}
@@ -301,7 +313,7 @@
   </div>
 </div>
 
-<script src="data.js?v=2026083104"></script>
+<script src="data.js?v=2026090101"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -618,8 +630,10 @@ function flipQuote(){
   txt.classList.remove('q-anim'); void txt.offsetWidth; txt.classList.add('q-anim');
 }
 
-/* 月度目标（可在此处修改；进度条按「当月实际 ÷ 目标」计算） */
-var MONTH_TARGET = { val:1000, push:700, book:300, arr:200 };
+/* 月度目标（可在此处修改；进度条按「当月实际 ÷ 目标」计算）
+   2026-08-31 校准：原 1000/700/300/200 严重虚高（预约仅完成16%），
+   已按 8 月实际（有效693/推进495/预约48/到诊56）小幅上浮重设，让目标具备牵引力 */
+var MONTH_TARGET = { val:700, push:500, book:60, arr:60 };
 
 function prevDay(dateStr){
   var d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()-1);
@@ -660,18 +674,70 @@ function healthBar(ld, today, ver){
   var tag = ver ? 'v'+ver : '';
   return '<div class="health-bar"><span class="hb-dot '+dot+'"></span><span class="hb-txt '+cls+'">'+txt+'</span>'+(tag?'<span class="hb-tag">'+tag+'</span>':'')+'</div>';
 }
-/* 异常告警区：断更 / 到诊挂零 / 客服挂零；无告警时返回空串（不渲染） */
-function alertsHTML(ld, today){
-  var gap = daysGap(ld, today);
-  var dayList = records.filter(function(r){return r.date===ld;});
-  var D = sum(dayList);
-  var alerts = [];
-  if(gap >= 2) alerts.push({txt:'数据已断更 '+gap+' 天（最新 '+ld+'），请及时补录', go:''});
-  if(D.arr === 0) alerts.push({txt:'最新数据日 '+ld+' 到诊挂零，当日无人到诊', go:'funnel'});
-  var zeroStaff = STAFF_ALL.filter(function(st){
-    return sum(dayList.filter(function(r){return r.staff===st;})).val === 0;
+/* 本月倒计时 + 日均缺口（常驻，正向驱动） */
+function gapBar(M, month, today){
+  var y=+month.slice(0,4), mo=+month.slice(5,7);
+  var lastDay=new Date(y, mo, 0).getDate();
+  var left=Math.max(0, lastDay - (+today.slice(8,10)) + 1);
+  var items=[
+    {name:'有效', cur:M.val,  tgt:MONTH_TARGET.val},
+    {name:'推进', cur:M.push, tgt:MONTH_TARGET.push},
+    {name:'预约', cur:M.book, tgt:MONTH_TARGET.book},
+    {name:'到诊', cur:M.arr,  tgt:MONTH_TARGET.arr}
+  ];
+  var h='<div class="gap-bar"><div class="gap-head">⏳ '+mo+'月剩 <b>'+left+'</b> 天'
+      +(left===0?'<span class="gap-end">（本月已结束，以下为最终缺口）</span>':'')+'</div>'
+      +'<div class="gap-items">';
+  items.forEach(function(it){
+    var remain=it.tgt-it.cur;
+    var rmTxt=(Math.round(remain*10)/10).toLocaleString();
+    if(remain<=0){ h+='<span class="gap-item ok">'+it.name+' 已达成 ✓</span>'; return; }
+    if(left===0){ h+='<span class="gap-item warn">'+it.name+' 差 '+rmTxt+'</span>'; return; }
+    /* 日均缺口超过「目标/30」说明进度已落后，标黄 */
+    var per=remain/left;
+    var warn=per > (it.tgt/30) ? ' warn' : '';
+    h+='<span class="gap-item'+warn+'">'+it.name+' 差 '+rmTxt+' <b>日均需 '+per.toFixed(1)+'</b></span>';
   });
-  if(zeroStaff.length) alerts.push({txt:'当日有效挂零：'+zeroStaff.join('、'), go:'staffperf'});
+  h+='</div></div>';
+  return h;
+}
+/* 真异常告警区：断更 / 渠道断流 / 客服连续挂零 / 到诊告急
+   设计原则：单日波动不报，只报「连续 N 个数据日」的持续性异常，避免天天误报 */
+function alertsHTML(ld, today){
+  var alerts=[];
+  var gap=daysGap(ld, today);
+  if(gap>=2) alerts.push({txt:'数据已断更 '+gap+' 天（最新 '+ld+'），请及时补录', go:''});
+
+  /* 最近若干个「有数据的日期」（降序）——按数据日而非自然日，避免休假日干扰 */
+  var dates=[]; records.forEach(function(r){ if(dates.indexOf(r.date)<0) dates.push(r.date); });
+  dates.sort().reverse();
+  var ym=ld.slice(0,7);
+
+  /* 渠道断流：连续 3 个数据日有效=0，且该渠道当月累计有效≥5（本该有量的才报） */
+  var N=3, recent=dates.slice(0,N);
+  if(recent.length===N){
+    ORGS.forEach(function(og){
+      var monVal=sum(records.filter(function(r){ return r.date.slice(0,7)===ym && r.org===og; })).val;
+      if(monVal < 5) return;
+      var dead=recent.every(function(d){
+        return sum(records.filter(function(r){ return r.date===d && r.org===og; })).val===0;
+      });
+      if(dead) alerts.push({txt:'渠道「'+og+'」连续 '+N+' 个数据日无有效线索（当月累计 '+monVal+'，疑似断流）', go:'staffperf'});
+    });
+    /* 客服连续挂零：仅监测标准 4 客服（脏值已剔除） */
+    STAFF.forEach(function(st){
+      var dead=recent.every(function(d){
+        return sum(records.filter(function(r){ return r.date===d && r.staff===st; })).val===0;
+      });
+      if(dead) alerts.push({txt:'客服「'+st+'」连续 '+N+' 个数据日有效挂零', go:'staffperf'});
+    });
+  }
+  /* 到诊告急：最近 7 个数据日累计到诊为 0（7 日颗粒度，规避到诊数据天然滞后） */
+  var last7=dates.slice(0,7);
+  if(last7.length>=4){
+    var arr7=sum(records.filter(function(r){ return last7.indexOf(r.date)>=0; })).arr;
+    if(arr7===0) alerts.push({txt:'最近 '+last7.length+' 个数据日（'+last7[last7.length-1]+' ~ '+last7[0]+'）累计到诊为 0，请补录到诊表', go:'funnel'});
+  }
   if(!alerts.length) return '';
   var h='<div class="alert-bar"><div class="alert-head">⚠ 异常提醒（'+alerts.length+'）</div>';
   alerts.forEach(function(a){
@@ -732,7 +798,9 @@ function renderDashboard(){
   html += healthBar(ld, today, DATA_VERSION);
   /* 云端拉取失败提示 */
   if(CLOUD_STATUS==='fail') html += cloudFailBar();
-  /* 异常告警区（无告警时隐藏） */
+  /* 本月倒计时 + 日均缺口（常驻） */
+  html += gapBar(M, month, today);
+  /* 真异常告警区（无异常时隐藏） */
   html += alertsHTML(ld, today);
   /* 本月目标达成 */
   html += targetBar(M, month);
