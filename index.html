@@ -57,6 +57,16 @@
   .sec-title .dot{width:8px;height:8px;border-radius:2px;background:var(--red);display:inline-block;}
   .sec-title .dot.blue{background:var(--blue);}
   .sec-title .meta{font-size:12px;color:var(--txt2);font-weight:400;}
+  .sec-title .tg-btn{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;font-size:12px;color:var(--txt2);cursor:pointer;font-weight:400;font-family:inherit;}
+  .sec-title .tg-btn:hover{border-color:var(--blue);color:var(--blue);}
+  .tg-edit{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:6px;}
+  .tg-fields{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .tg-field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--txt2);}
+  .tg-field input{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:15px;font-weight:700;color:var(--txt);width:100%;box-sizing:border-box;font-family:inherit;}
+  .tg-field input:focus{outline:none;border-color:var(--blue);}
+  .tg-acts{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .tg-acts .btn{padding:6px 14px;min-height:32px;font-size:12px;}
+  .tg-note{font-size:11px;color:var(--txt2);}
 
   /* 每日一言横幅 */
   @keyframes quoteIn{from{opacity:0;transform:translateY(-12px);}to{opacity:1;transform:none;}}
@@ -319,7 +329,7 @@
   </div>
 </div>
 
-<script src="data.js?v=2026090702"></script>
+<script src="data.js?v=2026090703"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -636,10 +646,25 @@ function flipQuote(){
   txt.classList.remove('q-anim'); void txt.offsetWidth; txt.classList.add('q-anim');
 }
 
-/* 月度目标（可在此处修改；进度条按「当月实际 ÷ 目标」计算）
-   2026-08-31 校准：原 1000/700/300/200 严重虚高（预约仅完成16%），
-   已按 8 月实际（有效693/推进495/预约48/到诊56）小幅上浮重设，让目标具备牵引力 */
-var MONTH_TARGET = { val:700, push:500, book:60, arr:60 };
+/* 月度目标：固件默认值 + 页面可编辑（按月存本机 localStorage，优先级：本月设置 > 通用设置 > 默认值） */
+var DEFAULT_TARGET = { val:700, push:500, book:60, arr:60 };
+var TG_KEY = 'dy_target_v1';
+var TG_FIELDS = [['val','有效'],['push','推进'],['book','预约'],['arr','到诊']];
+var TG_MONTH = '';
+function loadTargets(){ try{ return JSON.parse(localStorage.getItem(TG_KEY)||'{}')||{}; }catch(e){ return {}; } }
+function saveTargets(o){ try{ localStorage.setItem(TG_KEY, JSON.stringify(o)); }catch(e){} }
+function getTarget(month){
+  var all = loadTargets();
+  var t = all[month] || all['*'] || {};
+  var o = {};
+  TG_FIELDS.forEach(function(f){
+    var k=f[0], v=(t[k]==null||t[k]==='') ? null : +t[k];
+    o[k] = (v!=null && !isNaN(v) && v>=0) ? v : DEFAULT_TARGET[k];
+  });
+  return o;
+}
+/* 兼容旧引用 */
+var MONTH_TARGET = DEFAULT_TARGET;
 
 function prevDay(dateStr){
   var d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()-1);
@@ -683,13 +708,14 @@ function healthBar(ld, today, ver){
 /* 本月倒计时 + 日均缺口（常驻，正向驱动） */
 function gapBar(M, month, today){
   var y=+month.slice(0,4), mo=+month.slice(5,7);
+  var TG=getTarget(month);
   var lastDay=new Date(y, mo, 0).getDate();
   var left=Math.max(0, lastDay - (+today.slice(8,10)) + 1);
   var items=[
-    {name:'有效', cur:M.val,  tgt:MONTH_TARGET.val},
-    {name:'推进', cur:M.push, tgt:MONTH_TARGET.push},
-    {name:'预约', cur:M.book, tgt:MONTH_TARGET.book},
-    {name:'到诊', cur:M.arr,  tgt:MONTH_TARGET.arr}
+    {name:'有效', cur:M.val,  tgt:TG.val},
+    {name:'推进', cur:M.push, tgt:TG.push},
+    {name:'预约', cur:M.book, tgt:TG.book},
+    {name:'到诊', cur:M.arr,  tgt:TG.arr}
   ];
   var h='<div class="gap-bar"><div class="gap-head">⏳ '+mo+'月剩 <b>'+left+'</b> 天'
       +(left===0?'<span class="gap-end">（本月已结束，以下为最终缺口）</span>':'')+'</div>'
@@ -786,15 +812,31 @@ function cloudFailBar(){
     +'<button class="btn" style="margin-left:auto;padding:4px 12px;min-height:30px;font-size:12px" onclick="retryCloud()">重试</button></div>';
 }
 function retryCloud(){ CLOUD_STATUS='none'; pullCloud(); }
-/* 月度目标达成进度条 */
+/* 月度目标达成进度条 + 目标编辑（存本机，按月独立） */
 function targetBar(M, month){
+  TG_MONTH = month;
+  var TG = getTarget(month);
+  var isCustom = !!loadTargets()[month];
   var items=[
-    {name:'有效', color:'#1d6fe0', tgt:MONTH_TARGET.val,  cur:M.val},
-    {name:'推进', color:'#0e9f9f', tgt:MONTH_TARGET.push, cur:M.push},
-    {name:'预约', color:'#e6a23c', tgt:MONTH_TARGET.book, cur:M.book},
-    {name:'到诊', color:'#e64500', tgt:MONTH_TARGET.arr,  cur:M.arr}
+    {name:'有效', color:'#1d6fe0', tgt:TG.val,  cur:M.val},
+    {name:'推进', color:'#0e9f9f', tgt:TG.push, cur:M.push},
+    {name:'预约', color:'#e6a23c', tgt:TG.book, cur:M.book},
+    {name:'到诊', color:'#e64500', tgt:TG.arr,  cur:M.arr}
   ];
-  var h='<div class="sec-title"><span class="dot blue"></span>本月目标达成 <span class="meta">'+month+' · 目标值可在代码 MONTH_TARGET 中调整</span></div>';
+  var h='<div class="sec-title"><span class="dot blue"></span>本月目标达成 <span class="meta">'+month
+      +(isCustom?' · 已自定义':'')+'</span>'
+      +'<button class="tg-btn" onclick="toggleTargetEdit()">✎ 设置目标</button></div>';
+  /* 编辑区（默认收起） */
+  h+='<div class="tg-edit" id="tgEdit" style="display:none"><div class="tg-fields">';
+  TG_FIELDS.forEach(function(f){
+    h+='<label class="tg-field"><span>'+f[1]+'</span><input type="number" min="0" step="1" id="tg_'+f[0]+'" value="'+TG[f[0]]+'"></label>';
+  });
+  h+='</div><div class="tg-acts">'
+    +'<button class="btn primary" onclick="saveTarget()">保存</button>'
+    +'<button class="btn" onclick="toggleTargetEdit()">取消</button>'
+    +'<button class="btn danger" onclick="resetTarget()">恢复默认</button>'
+    +'<span class="tg-note">仅作用于 '+month+'；目标存在本机浏览器，换设备或清缓存后需重设</span>'
+    +'</div></div>';
   h+='<div class="goal-grid">';
   items.forEach(function(it){
     var pct = it.tgt ? Math.min(100, it.cur/it.tgt*100) : 0;
@@ -808,6 +850,32 @@ function targetBar(M, month){
   });
   h+='</div>';
   return h;
+}
+/* 目标编辑交互 */
+function toggleTargetEdit(){
+  var el=document.getElementById('tgEdit');
+  if(!el) return;
+  if(el.style.display==='none'){
+    el.style.display='block';
+    var i=document.getElementById('tg_val');
+    if(i){ i.focus(); i.select(); }
+  } else {
+    el.style.display='none';
+  }
+}
+function saveTarget(){
+  var all=loadTargets(), o={};
+  TG_FIELDS.forEach(function(f){
+    var k=f[0], el=document.getElementById('tg_'+k);
+    var v=el ? parseFloat(el.value) : NaN;
+    o[k]=(isNaN(v)||v<0) ? DEFAULT_TARGET[k] : v;
+  });
+  all[TG_MONTH]=o; saveTargets(all);
+  renderDashboard();
+}
+function resetTarget(){
+  var all=loadTargets(); delete all[TG_MONTH]; saveTargets(all);
+  renderDashboard();
 }
 
 function renderDashboard(){
