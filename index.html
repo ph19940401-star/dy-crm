@@ -329,7 +329,7 @@
   </div>
 </div>
 
-<script src="data.js?v=2026090801"></script>
+<script src="data.js?v=2026090802"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -646,8 +646,15 @@ function flipQuote(){
   txt.classList.remove('q-anim'); void txt.offsetWidth; txt.classList.add('q-anim');
 }
 
-/* 月度目标：固件默认值（全设备统一） + 页面可编辑（本机临时覆盖，按月存 localStorage；优先级：本月设置 > 通用设置 > 固件值）
-   2026-09-08 用户拍板全设备统一值：有效1500 / 推进1200 / 预约140 / 到诊90 */
+/* 月度目标：每月月初确定一次，之后整月不动（全设备统一）
+   1) MONTH_TARGET[月份]  = 该月既定目标（月初写入一次，历史月份不被新目标污染）
+   2) DEFAULT_TARGET      = 兜底值，仅用于「尚未配置目标」的月份（新月份未定时用最近一档）
+   3) localStorage 本机覆盖 = 临时试算用，只影响本机
+   getTarget 优先级：本机本月 > 本机通用'*' > MONTH_TARGET[月] > DEFAULT_TARGET */
+var MONTH_TARGET = {
+  '2026-08': { val:700,  push:500,  book:60,  arr:60 },
+  '2026-09': { val:1500, push:1200, book:140, arr:90 }
+};
 var DEFAULT_TARGET = { val:1500, push:1200, book:140, arr:90 };
 var TG_KEY = 'dy_target_v1';
 var TG_FIELDS = [['val','有效'],['push','推进'],['book','预约'],['arr','到诊']];
@@ -656,16 +663,17 @@ function loadTargets(){ try{ return JSON.parse(localStorage.getItem(TG_KEY)||'{}
 function saveTargets(o){ try{ localStorage.setItem(TG_KEY, JSON.stringify(o)); }catch(e){} }
 function getTarget(month){
   var all = loadTargets();
+  var fixed = MONTH_TARGET[month] || DEFAULT_TARGET;
   var t = all[month] || all['*'] || {};
   var o = {};
   TG_FIELDS.forEach(function(f){
-    var k=f[0], v=(t[k]==null||t[k]==='') ? null : +t[k];
-    o[k] = (v!=null && !isNaN(v) && v>=0) ? v : DEFAULT_TARGET[k];
+    var k=f[0];
+    var v=(t[k]==null||t[k]==='') ? null : +t[k];
+    if(v==null || isNaN(v) || v<0) v = fixed[k];
+    o[k] = v;
   });
   return o;
 }
-/* 兼容旧引用 */
-var MONTH_TARGET = DEFAULT_TARGET;
 
 function prevDay(dateStr){
   var d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()-1);
@@ -836,7 +844,7 @@ function targetBar(M, month){
     +'<button class="btn primary" onclick="saveTarget()">保存</button>'
     +'<button class="btn" onclick="toggleTargetEdit()">取消</button>'
     +'<button class="btn danger" onclick="resetTarget()">恢复默认</button>'
-    +'<span class="tg-note">仅作用于 '+month+' · 存在本机浏览器（换设备不同步）；全设备统一值需改代码 DEFAULT_TARGET</span>'
+    +'<span class="tg-note">仅作用于 '+month+' · 存在本机浏览器（换设备不同步）；全设备统一目标按月初既定值写入代码 MONTH_TARGET</span>'
     +'</div></div>';
   h+='<div class="goal-grid">';
   items.forEach(function(it){
