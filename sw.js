@@ -1,4 +1,4 @@
-const CACHE = 'dy-crm-v4';
+const CACHE = 'dy-crm-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -52,10 +52,10 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  // data.js（数据文件）：network-first，永远拉最新数据；离线才降级缓存
+  // data.js（数据文件）：**网络优先 + 绕过一切缓存**，永远拉最新数据；离线才降级缓存
   if (req.url.indexOf('data.js') !== -1) {
     e.respondWith(
-      fetch(req).then(function (resp) {
+      fetch(req, { cache: 'no-store' }).then(function (resp) {
         if (resp && resp.status === 200) {
           var copy = resp.clone();
           caches.open(CACHE).then(function (c) { c.put(req, copy); });
