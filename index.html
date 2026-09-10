@@ -329,7 +329,7 @@
   </div>
 </div>
 
-<script src="data.js?v=2026091002"></script>
+<script src="data.js?v=2026091003"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -513,90 +513,23 @@ function makeSample(){
   return out;
 }
 
-/* ==================== 客服外呼数据（独立口径） ==================== */
+/* ==================== 客服维度数据（cs） ==================== */
+/* 接通 jt / 加微 jw 已于 2026-09-10 撤除：看板从未渲染过这两项，cs 只保留 val 供客服口径核对 */
 var CS_LS = 'wb_medicrm_cs_v3';
-var CS_OLD2 = 'wb_medicrm_cs_v2';
-var CS_OLD = 'wb_medicrm_cs_v1';
 var csRecords = [];
 var csPeriod = 'day';   // day | mon | year
 var csChannel = '天雄星';   // 分渠道查看的当前渠道
-var CH_W = {'天雄星':.19,'天立星':.16,'福州博润':.20,'天机星':.18,'金牛-黄V团队':.14,'天损星':.13};
-
-/* 把一条客服日汇总按渠道权重拆分 */
-function splitCsByChannel(day, rnd){
-  var rows=[], acc={tot:0,jt:0,jw:0,val:0};
-  ORGS.forEach(function(org,oi){
-    var last = oi===ORGS.length-1;
-    var f = CH_W[org]*(0.8+0.4*rnd());
-    var r2={date:day.date, staff:day.staff, org:org};
-    ['tot','jt','jw','val'].forEach(function(k){
-      r2[k] = last ? Math.max(0,(+day[k]||0)-acc[k]) : Math.round((+day[k]||0)*f);
-      acc[k]+=r2[k];
-    });
-    if(r2.tot>0 || r2.val>0) rows.push(r2);
-  });
-  return rows;
-}
 
 function loadCs(){
-  try{ csRecords = JSON.parse(localStorage.getItem(CS_LS)) || []; }catch(e){ csRecords = []; }
-  if(!csRecords.length){
-    try{
-      /* 从 v2（已含渠道）直接迁移 */
-      var v2 = JSON.parse(localStorage.getItem(CS_OLD2)) || [];
-      if(v2.length){
-        csRecords = v2.map(function(r,i){
-          return {id:i+1,date:r.date,staff:r.staff,org:r.org||'',tot:+r.tot||0,jt:+r.jt||0,jw:+r.jw||0,val:+r.val||0};
-        });
-      }else{
-        /* 从 v1（无渠道）迁移：按渠道权重拆分 */
-        var old = JSON.parse(localStorage.getItem(CS_OLD)) || [];
-        if(old.length){
-          var rnd = seeded(99);
-          csRecords = [];
-          old.forEach(function(r){
-            splitCsByChannel(r, rnd).forEach(function(row){ csRecords.push(row); });
-          });
-          csRecords.forEach(function(r,i){ r.id=i+1; });
-        }
-      }
-    }catch(e){}
-  }
-  if(!csRecords.length){ csRecords = makeCsSample(); }
+  /* 只有 localStorage 有值时才覆盖；为空则保留 loadData 已载入的 cs，避免抹成空数组 */
+  try{
+    var v = JSON.parse(localStorage.getItem(CS_LS));
+    if(v && v.length) csRecords = v;
+  }catch(e){}
   csRecords = normCsList(csRecords);
   saveCs();
 }
 function saveCs(){ localStorage.setItem(CS_LS, JSON.stringify(csRecords)); }
-
-/* 客服外呼示例数据：4 客服 × 2026年1-8月 × 渠道拆分，口径：接通→加微→有效 */
-function makeCsSample(){
-  var season = [.92,.72,1.08,1.05,1.10,.98,1.02,1.06];
-  var out=[], id=1;
-  STAFF.forEach(function(st,si){
-    var rnd=seeded(si*331+7);
-    for(var mo=1; mo<=8; mo++){
-      var days = new Date(2026, mo, 0).getDate();
-      for(var d=1; d<=days; d++){
-        var wave = (0.75 + 0.5*rnd() + (d>=25?0.1:0)) * season[mo-1];
-        var tot = Math.max(10, Math.round((52+si*3)*wave));
-        var jt  = Math.round(tot * (0.60+0.10*rnd()));   // 接通
-        var jw  = Math.round(jt  * (0.50+0.12*rnd()));   // 加微
-        var val = Math.round(jw  * (0.68+0.10*rnd()));   // 有效
-        var day = {date:'2026-'+('0'+mo).slice(-2)+'-'+(d<10?'0'+d:d), staff:st, tot:tot, jt:jt, jw:jw, val:val};
-        splitCsByChannel(day, rnd).forEach(function(row){ row.id=id++; out.push(row); });
-      }
-    }
-  });
-  return out;
-}
-function csSum(list){
-  var s={tot:0,jt:0,jw:0,val:0};
-  list.forEach(function(r){ s.tot+=r.tot; s.jt+=r.jt; s.jw+=r.jw; s.val+=r.val; });
-  s.jtr = s.tot? s.jt/s.tot*100 : 0;   // 接通率 = 接通 ÷ 总数据
-  s.jwr = s.jt?  s.jw/s.jt*100  : 0;   // 加微率 = 加微 ÷ 接通
-  s.vr  = s.jw?  s.val/s.jw*100 : 0;   // 有效率 = 有效 ÷ 加微
-  return s;
-}
 
 /* ==================== 计算层 ==================== */
 function latestDate(){
@@ -617,7 +550,6 @@ function fmtPct(n){ return n.toFixed(2)+'%'; }
 /* fmtDash：数值为 0/null/'' 时显示「—」 */
 function fmtDash(n){ return (n===0||n==null||n==='') ? '—' : (typeof n==='number'? n.toLocaleString() : n); }
 function fmtCvrt(s){ return s.val ? fmtPct(s.cvrt) : '—'; }
-function fmtJtr(s){ return s.tot ? fmtPct(s.jtr) : '—'; }
 
 /* ==================== 视图：仪表盘 ==================== */
 /* ==================== 每日一言 ==================== */
