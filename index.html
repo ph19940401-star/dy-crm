@@ -399,15 +399,35 @@ function showSeedToast(v){
 function applySeedIfNewer(){
   try{
     if(typeof window.__DY_SEED__==='undefined' || !window.__DY_SEED__ || !window.__DY_SEED__.v) return false;
-    if(localStorage.getItem('__DY_SEED_VER__')===window.__DY_SEED__.v) return false;
-    if(window.__DY_SEED__.records && window.__DY_SEED__.records.length){
-      localStorage.setItem(LS_KEY, JSON.stringify(window.__DY_SEED__.records));
+    var seed = window.__DY_SEED__;
+    var seedVer = String(seed.v);
+    /* ① 版本号一致时，仍须做「内容级校验」：
+       历史版本存在「版本号已更新、但 records 还是旧数据」的脏状态
+       （独立 __DY_SEED_VER__ 与 LS_KEY 分开存储导致），必须在此兜住。
+       校验方式：比对本地 records 的总记录数 + 关键字段合计是否与 seed 一致。 */
+    var storedVer = localStorage.getItem('__DY_SEED_VER__');
+    if(storedVer === seedVer && seed.records && seed.records.length){
+      var localRecords = [];
+      try{ localRecords = JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch(e){ localRecords = []; }
+      var sig = function(arr){
+        var t = {'__n': arr.length, tot:0, val:0, push:0, book:0, arr:0};
+        arr.forEach(function(r){ for(var k in t){ if(k==='__n') continue; t[k] += (+r[k]||0); } });
+        return t;
+      };
+      var a = sig(seed.records), b = sig(localRecords);
+      var same = true;
+      for(var k in a){ if(a[k] !== b[k]){ same = false; break; } }
+      if(same) return false;   /* 真正一致，无需覆盖 */
+      /* 不一致 → 落到下面强制覆盖（脏状态修复） */
     }
-    if(window.__DY_SEED__.cs && window.__DY_SEED__.cs.length){
-      localStorage.setItem(CS_LS, JSON.stringify(window.__DY_SEED__.cs));
+    if(seed.records && seed.records.length){
+      localStorage.setItem(LS_KEY, JSON.stringify(seed.records));
     }
-    localStorage.setItem('__DY_SEED_VER__', window.__DY_SEED__.v);
-    showSeedToast(window.__DY_SEED__.v);
+    if(seed.cs && seed.cs.length){
+      localStorage.setItem(CS_LS, JSON.stringify(seed.cs));
+    }
+    localStorage.setItem('__DY_SEED_VER__', seedVer);
+    if(storedVer !== seedVer) showSeedToast(seedVer);
     return true;
   }catch(e){ return false; }
 }
@@ -441,6 +461,17 @@ function verifyDataFreshness(){
 }
 
 function loadData(){
+  /* 内嵌数据（window.__DY_SEED__）是权威源：页面本身即最新数据，
+     直接覆盖 localStorage，避免历史「版本号新、数据旧」的脏缓存继续生效。
+     注意：applySeedIfNewer() 已先跑过一次；这里是第二道保险（双保险，幂等）。 */
+  if(typeof window.__DY_SEED__!=='undefined' && window.__DY_SEED__ && window.__DY_SEED__.records && window.__DY_SEED__.records.length){
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify(window.__DY_SEED__.records));
+      if(window.__DY_SEED__.cs && window.__DY_SEED__.cs.length){
+        localStorage.setItem(CS_LS, JSON.stringify(window.__DY_SEED__.cs));
+      }
+    }catch(e){}
+  }
   try{ records = JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch(e){ records = []; }
   if(!records.length){
     try{
