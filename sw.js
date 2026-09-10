@@ -1,4 +1,4 @@
-const CACHE = 'dy-crm-v5';
+const CACHE = 'dy-crm-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -36,10 +36,10 @@ self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   var req = e.request;
 
-  // 页面（导航请求）：network-first，永远拿到最新版；网络失败才降级缓存
+  // 页面（导航请求）：network-first + 绕过 HTTP 缓存，永远拿到最新版；网络失败才降级缓存
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req).then(function (resp) {
+      fetch(req, { cache: 'no-store' }).then(function (resp) {
         if (resp && resp.status === 200) {
           var copy = resp.clone();
           caches.open(CACHE).then(function (c) { c.put('./index.html', copy); });
