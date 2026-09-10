@@ -210,6 +210,11 @@
 
   /* 客服数据表格统一样式 */
   .cs-table{table-layout:fixed;width:100%;}
+  /* 短板环节标记 */
+  .weak-bad{display:inline-block;padding:1px 7px;border-radius:5px;background:#fdecea;color:#c0392b;font-weight:700;font-size:12px;white-space:nowrap;}
+  .weak-bad em{font-style:normal;color:#e0695a;font-weight:600;font-size:11px;margin-left:3px;}
+  .weak-ok{color:#12a150;font-weight:700;font-size:12px;white-space:nowrap;}
+  .weak-none{color:#9aa7b8;font-size:12px;white-space:nowrap;}
 
   /* 转化漏斗分析 */
   .funnel{max-width:780px;margin:0 auto;}
@@ -335,7 +340,7 @@
   </div>
 </div>
 
-<script src="data.js?v=2026091005"></script>
+<script src="data.js?v=2026091006"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -1692,14 +1697,36 @@ function renderStaffPerf(){
 
   var rows=STAFF_ALL.map(function(st){
     var s=sum(list.filter(function(r){return r.staff===st;}));
-    var mon=list.filter(function(r){return r.staff===st;});
-    var ch=ORGS.map(function(o){ return {org:o, s:sum(mon.filter(function(r){return r.org===o;}))}; })
-      .filter(function(r){return r.s.arr>0 || r.s.val>0;})
-      .sort(function(a,b){ return (b.s.arr - a.s.arr) || (b.s.val - a.s.val); });
-    return {st:st, s:s, fav: ch.length? ch[0] : null};
+    return {st:st, s:s};
   });
   var T=sum(list);
   rows.forEach(function(r){ r.share = T.arr ? r.s.arr/T.arr*100 : 0; });
+  /* 团队基准比率（用于「短板环节」诊断）。
+     注意：**到院率（ar）刻意不参与诊断** —— 预约按预约日归月、到诊按到院日归月，
+     跨月预约会让分母偏小、到院率虚高（9月实测 228%），拿它比会失真。 */
+  var TREND={pr:rate(T.val,T.push), br:rate(T.push,T.book), cv:T.cvrt};
+  rows.forEach(function(r){
+    var s=r.s;
+    var cur={pr:rate(s.val,s.push), br:rate(s.push,s.book), cv:s.cvrt};
+    /* 样本门槛：有效<5 视为样本不足，不诊断 */
+    if(s.val<5){ r.weak=null; return; }
+    /* 各环节对团队均值算偏差（比率口径统一为「产出/上游」，越高越好）；
+       留一点均值基准的相对差，避免团队整体差时全员报同一个环节 */
+    var names={pr:'推进', br:'预约', cv:'转化'};
+    var tips={pr:'有效→推进率偏低，需加强首轮沟通与需求挖掘',
+              br:'推进→预约率偏低，需加强邀约话术与到院理由铺垫',
+              cv:'整体转化偏低（到诊÷有效），建议全链路复盘'};
+    var worst=null, worstGap=0;
+    ['pr','br','cv'].forEach(function(k){
+      if(!TREND[k]) return;
+      var gap=(cur[k]-TREND[k])/TREND[k];   // 负值=低于团队
+      if(gap<worstGap-1e-9){ worstGap=gap; worst=k; }
+    });
+    /* 偏差不足 15% 视为「无明显短板」，避免正常波动被贴标签 */
+    if(worst && worstGap<=-0.15){
+      r.weak={k:worst, name:names[worst], tip:tips[worst], gap:worstGap};
+    } else { r.weak=null; }
+  });
   rows.sort(function(a,b){ return b.s.arr - a.s.arr; });
 
   var h='<div class="toolbar" style="margin-top:0">'+btn('day','当日')+btn('mon','当月')+btn('year','年度')+'</div>';
@@ -1709,12 +1736,18 @@ function renderStaffPerf(){
   h+='<div class="panel"><div class="table-wrap"><table class="cs-table"><colgroup>'
     +'<col style="width:13%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:9%">'
     +'</colgroup><thead><tr>'
-    +'<th>客服</th><th>有效</th><th>推进</th><th>推进率</th><th>预约</th><th>预约率</th><th>到诊</th><th>到院率</th><th>总转化</th><th>擅长渠道</th><th>到诊占比</th>'
+    +'<th>客服</th><th>有效</th><th>推进</th><th>推进率</th><th>预约</th><th>预约率</th><th>到诊</th><th>到院率</th><th>总转化</th><th>短板环节</th><th>到诊占比</th>'
     +'</tr></thead><tbody>';
   rows.forEach(function(r){
     var s=r.s;
     var pr=rate(s.val,s.push), br=rate(s.push,s.book), ar=rate(s.book,s.arr);
-    var favTxt = r.fav ? (r.fav.org + (r.fav.s.arr>0 ? '（到诊'+r.fav.s.arr+'）' : '（有效'+r.fav.s.val+'）')) : '—';
+    /* 短板环节：低于团队均值 ≥15% 的最弱一环；样本不足或无短板则显示达标 */
+    var weakTxt;
+    if(s.val<5){ weakTxt='<span class="weak-none" title="有效不足 5 条，样本太小不诊断">样本不足</span>'; }
+    else if(r.weak){
+      weakTxt='<span class="weak-bad" title="'+r.weak.tip+'">'+r.weak.name
+        +' <em>'+Math.round(r.weak.gap*100)+'%</em></span>';
+    } else { weakTxt='<span class="weak-ok">无明显短板</span>'; }
     h+='<tr><td><b>'+r.st+'</b></td>'
       +'<td>'+s.val.toLocaleString()+'</td>'
       +'<td>'+s.push.toLocaleString()+'</td>'
@@ -1724,7 +1757,7 @@ function renderStaffPerf(){
       +'<td class="hl">'+s.arr.toLocaleString()+'</td>'
       +'<td>'+fmtPct(ar)+'</td>'
       +'<td class="hl">'+fmtCvrt(s)+'</td>'
-      +'<td>'+favTxt+'</td>'
+      +'<td>'+weakTxt+'</td>'
       +'<td>'+r.share.toFixed(1)+'%</td></tr>';
   });
   var Tpr=rate(T.val,T.push), Tbr=rate(T.push,T.book), Tar=rate(T.book,T.arr);
