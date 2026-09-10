@@ -112,6 +112,8 @@
   .health-bar .hb-txt.warn{color:#946200;}
   .health-bar .hb-txt.bad{color:var(--red);}
   .health-bar .hb-tag{margin-left:auto;font-size:12px;color:var(--txt2);white-space:nowrap;}
+  .health-bar .hb-refresh{margin-left:12px;flex-shrink:0;background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 12px;font-size:12.5px;color:var(--txt);cursor:pointer;font-family:inherit;transition:.15s;}
+  .health-bar .hb-refresh:hover{background:#1d6fe0;border-color:#1d6fe0;color:#fff;}
 
   /* 本月倒计时 + 日均缺口（常驻） */
   .gap-bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;}
@@ -340,7 +342,7 @@
   </div>
 </div>
 
-<script src="data.js?v=2026091009"></script>
+<script src="data.js?v=2026091011"></script>
 <script>
 /* ==================== 数据层 ==================== */
 var LS_KEY = 'wb_medicrm_records_v5';
@@ -406,6 +408,37 @@ function applySeedIfNewer(){
     showSeedToast(window.__DY_SEED__.v);
     return true;
   }catch(e){ return false; }
+}
+
+/* 缓存自检保险丝：绕过一切缓存直取 data.js 首行版本号，
+   若与页面内存中的版本不一致 → 说明当前页面吃到了缓存的旧 data.js，
+   立即清空 SW 缓存 + localStorage 版本标记并强制重载一次（防抖）。 */
+function verifyDataFreshness(){
+  try{
+    if(!window.__DY_SEED__ || !window.__DY_SEED__.v) return;
+    var mine = String(window.__DY_SEED__.v);
+    fetch('data.js?t=' + Date.now(), { cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.text() : null; })
+      .then(function(txt){
+        if(!txt) return;
+        var m = txt.match(/"v"\s*:\s*"([^"]+)"/);
+        if(!m) return;
+        var remote = m[1];
+        if(remote === mine) return;                    /* 一致，无需处理 */
+        if(location.search.indexOf('_rc=1') >= 0) return; /* 已重载过，防死循环 */
+        /* 不一致 → 清缓存 + 清版本标记，带 _rc=1 重载 */
+        var done = function(){
+          try{ localStorage.removeItem('__DY_SEED_VER__'); }catch(e){}
+          var u = location.origin + location.pathname + '?_rc=1';
+          location.replace(u);
+        };
+        if('caches' in window){
+          caches.keys().then(function(ks){
+            return Promise.all(ks.map(function(k){ return caches.delete(k); }));
+          }).then(done).catch(done);
+        } else { done(); }
+      }).catch(function(){ /* 网络不可用时静默跳过 */ });
+  }catch(e){}
 }
 
 function loadData(){
@@ -646,7 +679,7 @@ function deltaTxt(cur, prev, prefix, kind){
   var sign = d>0?'+':'';
   return {txt: prefix+' '+sign+d+'（'+sign+pct.toFixed(0)+'%）', cls: d>0?'up':(d<0?'down':'flat')};
 }
-/* 数据新鲜度健康条（tag 位显示数据版本号） */
+/* 数据新鲜度健康条（tag 位显示数据版本号 + 一键刷新） */
 function healthBar(ld, today, ver){
   var gap = daysGap(ld, today);
   var dot, txt, cls='';
@@ -654,8 +687,9 @@ function healthBar(ld, today, ver){
   else if(gap===1){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（昨天）'; }
   else if(gap<=3){ dot='warn'; cls='warn'; txt='数据最新更新至 <b>'+ld+'</b>，已过去 <b>'+gap+'</b> 天'; }
   else { dot='bad'; cls='bad'; txt='数据最新更新至 <b>'+ld+'</b>，已断更 <b>'+gap+'</b> 天，请及时补录'; }
-  var tag = ver ? 'v'+ver : '';
-  return '<div class="health-bar"><span class="hb-dot '+dot+'"></span><span class="hb-txt '+cls+'">'+txt+'</span>'+(tag?'<span class="hb-tag">'+tag+'</span>':'')+'</div>';
+  var tag = ver ? '<span class="hb-tag" title="当前加载的数据版本号；若与最新发布版本不一致，说明浏览器缓存了旧数据，请点右侧刷新">数据版本 '+ver+'</span>' : '';
+  var btn = '<button class="hb-refresh" onclick="updateApp()" title="清空浏览器缓存并强制重新加载最新数据">↻ 刷新数据</button>';
+  return '<div class="health-bar"><span class="hb-dot '+dot+'"></span><span class="hb-txt '+cls+'">'+txt+'</span>'+tag+btn+'</div>';
 }
 /* 本月倒计时 + 日均缺口（常驻，正向驱动） */
 function gapBar(M, month, today){
@@ -1946,6 +1980,7 @@ setInterval(tick,1000); tick();
 
 applySeedIfNewer();
 loadData(); loadCs(); loadAssets(); route(); pullCloud();
+verifyDataFreshness();
 
 /* PWA：注册 Service Worker（仅在 http/https 下，file:// 直接跳过） */
 if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
