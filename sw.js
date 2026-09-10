@@ -1,4 +1,4 @@
-const CACHE = 'dy-crm-v3';
+const CACHE = 'dy-crm-v4';
 const ASSETS = [
   './',
   './index.html',
