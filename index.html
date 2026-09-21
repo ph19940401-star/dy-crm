@@ -1047,20 +1047,27 @@ function drawTrend(ld){
   document.getElementById('trendChart').innerHTML=s;
 }
 
-/* 各渠道到诊横向柱状图（当月累计） */
+/* 各渠道到诊横向柱状图（当月累计）；括号内拆分本点 / 推出到诊 */
 function drawOrgBars(month){
   var rows = ORGS.map(function(org){
-    var s=sum(records.filter(function(r){return r.date.slice(0,7)===month && r.org===org;}));
-    return {org:org, arr:s.arr};
+    var list=records.filter(function(r){return r.date.slice(0,7)===month && r.org===org;});
+    var s=sum(list), l=0, p=0;
+    list.forEach(function(r){ l+=(r.arr_local||0); p+=(r.arr_push||0); });
+    return {org:org, arr:s.arr, local:l, push:p};
   }).sort(function(a,b){return b.arr-a.arr;});
   var max=Math.max.apply(null,rows.map(function(r){return r.arr;})) || 1;
-  var W=460, rh=34, H=rows.length*rh+10, pl=110, pr=60;
+  var W=460, rh=34, H=rows.length*rh+10, pl=110, pr=162;
   var s='<svg viewBox="0 0 '+W+' '+H+'" width="100%">';
   rows.forEach(function(r,i){
     var y=i*rh+8, bw=(W-pl-pr)*r.arr/max;
+    // 仅当本点+推出有数时才展示拆分，避免历史桶无拆分字段时显示 0/0
+    var split = (r.local+r.push)>0;
+    var tip = r.org+' 到诊 '+r.arr+' 人'+(split? '（本点 '+r.local+' · 推出 '+r.push+'）' : '');
     s+='<text x="'+(pl-8)+'" y="'+(y+13)+'" text-anchor="end" font-size="12" fill="#1f2d3d">'+r.org+'</text>';
-    s+='<rect x="'+pl+'" y="'+y+'" width="'+Math.max(bw,2)+'" height="18" rx="4" fill="#e64500"><title>'+r.org+' 到诊 '+r.arr+' 人</title></rect>';
-    s+='<text x="'+(pl+bw+8)+'" y="'+(y+13)+'" font-size="11" fill="#e64500" font-weight="700">'+r.arr+' 人</text>';
+    s+='<rect x="'+pl+'" y="'+y+'" width="'+Math.max(bw,2)+'" height="18" rx="4" fill="#e64500"><title>'+tip+'</title></rect>';
+    s+='<text x="'+(pl+bw+8)+'" y="'+(y+13)+'" font-size="11" fill="#e64500" font-weight="700">'+r.arr+' 人'
+      + (split? '<tspan font-size="10" font-weight="400" fill="#9a6a55">（本点 '+r.local+' · 推出 '+r.push+'）</tspan>' : '')
+      + '</text>';
   });
   s+='</svg>';
   document.getElementById('orgChart').innerHTML=s;
