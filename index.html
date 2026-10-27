@@ -186,6 +186,14 @@
   .hl{color:var(--blue);font-weight:700;}
   .hl.c-red{color:var(--red);}
   .hl.c-green{color:var(--green);}
+  /* 渠道明细弹窗：漏斗率版（加宽 + 率列弱化） */
+  .modal.wide{width:1120px;}
+  table.mtx th,table.mtx td{padding:9px 8px;}
+  table.mtx .rate{color:var(--txt2);font-size:12.5px;font-weight:400;}
+  table.mtx tfoot .rate{color:var(--txt2);}
+  table.mtx .c-low{color:#e64500;font-weight:700;}
+  table.mtx .c-mid{color:#946200;}
+  table.mtx thead th.rate-h{font-weight:500;color:#8f9cae;}
 
   /* 数据管理 */
   .form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end;}
@@ -1094,29 +1102,58 @@ function openDetail(scope, metric, label){
 
   document.getElementById('modalTitle').textContent =
     (scope==='day'? ld+' · 日' : month+' · 月') + m.name + ' — 各渠道明细';
+  document.querySelector('.modal').classList.add('wide');
 
-  var h='<div class="table-wrap"><table><thead><tr>'
-    +'<th>渠道</th><th>有效</th><th>推进</th><th>预约</th><th>到诊</th><th>总转化</th></tr></thead><tbody>';
+  /* 漏斗各环节转化率：推进率=推进÷有效，预约率=预约÷推进，到诊率=到诊÷预约 */
+  var rt=function(a,b){ return b? a/b*100 : null; };
+  var fmtRt=function(v){ return v==null? '—' : v.toFixed(1)+'%'; };
+  var avgP=rt(T.push,T.val), avgB=rt(T.book,T.push), avgA=rt(T.arr,T.book);
+  /* 以全月合计率为基准：低于 75% 标黄，低于 50% 标红；小样本不标（避免噪音） */
+  var rateCls=function(v,base,denom,need){
+    if(v==null||!base||denom<need) return 'rate';
+    if(v<base*0.5) return 'rate c-low';
+    if(v<base*0.75) return 'rate c-mid';
+    return 'rate';
+  };
+  var RT=function(txt){ return '<th class="rate-h">'+txt+'</th>'; };
+
+  var h='<div style="font-size:12px;color:var(--txt2);margin:2px 0 8px">'
+    +'占比 = 该渠道有效 ÷ 全月有效　·　推进率 = 推进÷有效　·　预约率 = 预约÷推进　·　到诊率 = 到诊÷预约</div>'
+    +'<div class="table-wrap"><table class="mtx"><thead><tr>'
+    +'<th>渠道</th><th>有效</th>'+RT('占比')+'<th>推进</th>'+RT('推进率')
+    +'<th>预约</th>'+RT('预约率')+'<th>到诊</th>'+RT('到诊率')+'<th>总转化</th></tr></thead><tbody>';
   rows.forEach(function(r){
     var cell=function(key,val){ return '<td class="'+(key===metric?'hl':'')+'">'+val+'</td>'; };
+    var pR=rt(r.s.push,r.s.val), bR=rt(r.s.book,r.s.push), aR=rt(r.s.arr,r.s.book);
     h+='<tr><td>'+r.org+'</td>'
       +cell('val',  r.s.val.toLocaleString())
+      +'<td class="rate">'+fmtRt(rt(r.s.val,T.val))+'</td>'
       +cell('push', r.s.push.toLocaleString())
+      +'<td class="'+rateCls(pR,avgP,r.s.val,10)+'">'+fmtRt(pR)+'</td>'
       +cell('book', r.s.book.toLocaleString())
+      +'<td class="'+rateCls(bR,avgB,r.s.push,8)+'">'+fmtRt(bR)+'</td>'
       +cell('arr',  r.s.arr.toLocaleString())
+      +'<td class="'+rateCls(aR,avgA,r.s.book,5)+'">'+fmtRt(aR)+'</td>'
       +cell('cvrt', fmtCvrt(r.s))+'</tr>';
   });
   h+='</tbody><tfoot><tr><td>合计</td>'
     +'<td class="'+(metric==='val'?'hl':'')+'">'+T.val.toLocaleString()+'</td>'
+    +'<td class="rate">100.0%</td>'
     +'<td class="'+(metric==='push'?'hl':'')+'">'+T.push.toLocaleString()+'</td>'
+    +'<td class="rate">'+fmtRt(avgP)+'</td>'
     +'<td class="'+(metric==='book'?'hl':'')+'">'+T.book.toLocaleString()+'</td>'
+    +'<td class="rate">'+fmtRt(avgB)+'</td>'
     +'<td class="'+(metric==='arr'?'hl':'')+'">'+T.arr.toLocaleString()+'</td>'
+    +'<td class="rate">'+fmtRt(avgA)+'</td>'
     +'<td class="'+(metric==='cvrt'?'hl':'')+'">'+fmtCvrt(T)+'</td></tr></tfoot></table></div>';
   document.getElementById('modalBody').innerHTML=h;
   document.getElementById('mask').classList.add('show');
   animateNumbers(document.getElementById('modalBody'));
 }
-function closeModal(){ document.getElementById('mask').classList.remove('show'); }
+function closeModal(){
+  document.querySelector('.modal').classList.remove('wide');
+  document.getElementById('mask').classList.remove('show');
+}
 
 /* ==================== 视图：数据管理 ==================== */
 function renderManage(){
