@@ -615,14 +615,29 @@ function loadCs(){
 function saveCs(){ localStorage.setItem(CS_LS, JSON.stringify(csRecords)); }
 
 /* ==================== 计算层 ==================== */
-function latestDate(){
-  var max=''; records.forEach(function(r){ if(r.date>max) max=r.date; });
-  return max || todayStr();
+/* ——「数据日」定义（2026-10-29 修正，勿回退）——
+   ① 当天必须有实质业务记录（有效/转潜/预约/到诊）。
+      「应到(due)」是按约诊日归桶的，可能落在明天/下月，绝不能当成数据日 ——
+      否则空壳的应到桶会把「最新数据日」顶到未来，当日汇总会全变 0。
+   ② 不可能超过昨天：三类表都是 T+1 才导出 T 日，今天的数据根本不存在。 */
+function isDataDay(r){
+  return !!(r.val||r.push||r.book||r.arr||r.jt||r.jw);
 }
-function todayStr(){
-  var d=new Date();
-  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+function shiftDay(dateStr, n){
+  var d = dateStr ? new Date(dateStr+'T00:00:00') : new Date();
+  d.setDate(d.getDate()+n);
+  var p=function(x){return ('0'+x).slice(-2);};
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
 }
+function todayStr(){ return shiftDay(null, 0); }
+function yesterdayStr(){ return shiftDay(null, -1); }
+/* 数据日列表（降序、去重）：只认「有实质记录 且 不晚于昨天」的日期 */
+function dataDates(){
+  var lim=yesterdayStr(), seen={};
+  records.forEach(function(r){ if(r.date<=lim && isDataDay(r)) seen[r.date]=1; });
+  return Object.keys(seen).sort().reverse();
+}
+function latestDate(){ return dataDates()[0] || yesterdayStr(); }
 function sum(list){
   var s={tot:0,val:0,push:0,book:0,arr:0,push_local:0,push_none:0,book_local:0,book_push:0,arr_local:0,arr_push:0};
   list.forEach(function(r){
@@ -727,7 +742,8 @@ function deltaTxt(cur, prev, prefix, kind){
 function healthBar(ld, today, ver){
   var gap = daysGap(ld, today);
   var dot, txt, cls='';
-  if(gap<=0){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（今天）'; }
+  if(gap<0){ dot='warn'; cls='warn'; txt='数据日期 <b>'+ld+'</b> 异常（晚于今天），请检查'; }
+  else if(gap===0){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（今天）'; }
   else if(gap===1){ dot='ok';  txt='数据已更新至 <b>'+ld+'</b>（昨天）'; }
   else if(gap<=3){ dot='warn'; cls='warn'; txt='数据最新更新至 <b>'+ld+'</b>，已过去 <b>'+gap+'</b> 天'; }
   else { dot='bad'; cls='bad'; txt='数据最新更新至 <b>'+ld+'</b>，已断更 <b>'+gap+'</b> 天，请及时补录'; }
@@ -770,9 +786,9 @@ function alertsHTML(ld, today){
   var gap=daysGap(ld, today);
   if(gap>=2) alerts.push({txt:'数据已断更 '+gap+' 天（最新 '+ld+'），请及时补录', go:''});
 
-  /* 最近若干个「有数据的日期」（降序）——按数据日而非自然日，避免休假日干扰 */
-  var dates=[]; records.forEach(function(r){ if(dates.indexOf(r.date)<0) dates.push(r.date); });
-  dates.sort().reverse();
+  /* 最近若干个「有数据的日期」（降序）——按数据日而非自然日，避免休假日干扰；
+     口径同 latestDate()：排除纯应到空壳桶与未来日期 */
+  var dates=dataDates();
   var ym=ld.slice(0,7);
 
   /* 渠道断流：连续 3 个数据日有效=0，且该渠道当月累计有效≥5（本该有量的才报） */
@@ -796,7 +812,7 @@ function alertsHTML(ld, today){
     /* 客服到诊告警（按严重度排序，越严重越靠前，红色区）：
        ① 一级 = 当月累计到诊 0，且当月已过 ≥N 个数据日（整月未开张，最严重，一定排最前）
        ② 二级 = 当月累计到诊 >0 但连续 N 个数据日到诊=0（本该有量却停摆） */
-    var monDays=(function(){ var s={}; records.forEach(function(r){ if(r.date.slice(0,7)===ym) s[r.date]=1; }); return Object.keys(s).length; })();
+    var monDays=dataDates().filter(function(d){ return d.slice(0,7)===ym; }).length;
     STAFF.forEach(function(st){
       var monArr=sum(records.filter(function(r){ return r.date.slice(0,7)===ym && r.staff===st; })).arr;
       if(monArr<=0){
